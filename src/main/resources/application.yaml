@@ -1,3 +1,9 @@
 spring:
   application:
     name: demo
+  data:
+    mongodb:
+      uri: mongodb+srv://elaa:EiyAyh3vA98hib@cluster0:vg9stxe:mongodb:net/?appName=Cluster0
+      database: ecoTrack
+server:
+  port: 8080
