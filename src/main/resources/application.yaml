@@ -5,5 +5,9 @@ spring:
     mongodb:
       uri: ${MONGO_URI}
       database: ecoTrack
+supabase:
+  url: ${SUPABASE_URL}
+  key: ${SUPABASE_SECRET}
+  bucket: ecoTrackImages
 server:
   port: 8080
