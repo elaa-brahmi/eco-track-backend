@@ -3,6 +3,7 @@ import com.example.demo.models.Report;
 import com.example.demo.service.report.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 @RestController
@@ -11,10 +12,12 @@ import java.util.List;
 public class ReportController {
 
     private final ReportService reportService;
-
-    @PostMapping
-    public Report create(@RequestBody Report report) {
-        return reportService.create(report);
+    //@RequestPart (for multipart values)
+    @PostMapping(value="", consumes= "multipart/form-data")
+    public Report create(@RequestPart("file") MultipartFile file,
+                         @RequestPart("description") String description,
+                         @RequestPart("location") double[] location) {
+        return reportService.create(file, description, location);
     }
 
     @GetMapping
