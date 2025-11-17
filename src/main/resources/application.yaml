@@ -3,7 +3,7 @@ spring:
     name: demo
   data:
     mongodb:
-      uri: mongodb+srv://elaa:EiyAyh3vA98hib@cluster0.vg9stxe.mongodb.net/ecoTrack?retryWrites=true&w=majority
+      uri: ${MONGO_URI}
       database: ecoTrack
 server:
   port: 8080
