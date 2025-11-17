@@ -19,7 +19,7 @@ public class ReportServiceImpl implements ReportService {
 
 
     @Override
-    public Report create(MultipartFile file, String description, double[] location) {
+    public Report create(MultipartFile file, String description, String location) {
         //save image to supabase
         String imageUrl = null;
         if (file != null && !file.isEmpty()) {

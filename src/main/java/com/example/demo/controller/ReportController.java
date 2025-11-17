@@ -16,7 +16,7 @@ public class ReportController {
     @PostMapping(value="", consumes= "multipart/form-data")
     public Report create(@RequestPart("file") MultipartFile file,
                          @RequestPart("description") String description,
-                         @RequestPart("location") double[] location) {
+                         @RequestPart("location") String location) {
         return reportService.create(file, description, location);
     }
 
