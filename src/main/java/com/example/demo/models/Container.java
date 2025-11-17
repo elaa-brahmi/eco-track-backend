@@ -8,8 +8,7 @@ import java.time.Instant;
 
 @Document(collection = "containers")
 @Data
-@Getter
-@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Container {
