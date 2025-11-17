@@ -25,13 +25,13 @@ public class SupabaseStorageService {
         String fileName = UUID.randomUUID() + "." + fileExtension;
 
         String uploadUrl = SUPABASE_URL + "/storage/v1/object/" + BUCKET + "/" + fileName;
-
+        String mimeType = "image/" + fileExtension.toLowerCase();
         RequestBody body = RequestBody.create(fileBytes);
 
         Request request = new Request.Builder()
                 .url(uploadUrl)
                 .addHeader("Authorization", "Bearer " + SERVICE_ROLE_KEY)
-                .addHeader("Content-Type", "application/octet-stream")
+                .addHeader("Content-Type", mimeType)
                 .put(body)
                 .build();
 
