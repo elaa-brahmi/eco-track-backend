@@ -1,5 +1,6 @@
 package com.example.demo.service.task;
 
+import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
 import com.example.demo.repositories.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,9 +34,9 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task assign(String taskId, String employeeId) {
+    public Task assign(String taskId, Employee employee) {
         Task task = findById(taskId);
-        task.setAssignedTo(employeeId);
+        task.setAssignedTo(employee.getId());
         task.setStatus("ASSIGNED");
         return repository.save(task);
     }
