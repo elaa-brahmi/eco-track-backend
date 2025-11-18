@@ -1,7 +1,9 @@
 package com.example.demo.controller;
+import com.example.demo.dto.UpdateTaskRequest;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
 import com.example.demo.service.task.TaskService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,13 +36,14 @@ public class TaskController {
         return ResponseEntity.status(200).body(taskService.assign(id, employee));
 
     }
-    @PutMapping("/{id}/status")
-    public ResponseEntity<Task> updateTask(@PathVariable String id, @RequestBody String status) {
-        return ResponseEntity.status(200).body(taskService.updateStatus(id, status));
+    @PutMapping("/{id}")
+    public ResponseEntity<Task> updateTask(@PathVariable String id, @RequestBody @Valid UpdateTaskRequest request) {
+        return ResponseEntity.status(200).body(taskService.updateStatus(id, request));
 
     }
     @DeleteMapping("/{id}")
-    public void deleteTask(@PathVariable String id) {
+    public ResponseEntity<Void> deleteTask(@PathVariable String id) {
         taskService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

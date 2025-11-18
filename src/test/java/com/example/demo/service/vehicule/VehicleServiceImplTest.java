@@ -1,15 +1,18 @@
-package com.example.demo;
+package com.example.demo.service.vehicule;
 import com.example.demo.models.Vehicle;
 import com.example.demo.repositories.VehicleRepository;
 import com.example.demo.service.vehicule.VehicleServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+@ExtendWith(MockitoExtension.class)
 class VehicleServiceImplTest {
 
     @Mock
@@ -17,11 +20,6 @@ class VehicleServiceImplTest {
 
     @InjectMocks
     VehicleServiceImpl service;
-
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void testCreate() {
