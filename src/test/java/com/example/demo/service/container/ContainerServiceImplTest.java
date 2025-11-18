@@ -1,17 +1,19 @@
-package com.example.demo;
+package com.example.demo.service.container;
 
 import com.example.demo.models.Container;
 import com.example.demo.repositories.ContainerRepository;
 import com.example.demo.service.container.ContainerServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
+@ExtendWith(MockitoExtension.class)
 class ContainerServiceImplTest {
 
     @Mock
@@ -19,11 +21,6 @@ class ContainerServiceImplTest {
 
     @InjectMocks
     private ContainerServiceImpl service;
-
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void testFindAll() {
@@ -35,12 +32,15 @@ class ContainerServiceImplTest {
 
     @Test
     void testFindById() {
+        //given
         Container c = new Container();
         c.setId("1");
 
         when(repository.findById("1")).thenReturn(Optional.of(c));
-
+        //when
         Container result = service.findById("1");
+        //then
+        assertNotNull(result);
         assertEquals("1", result.getId());
     }
 
