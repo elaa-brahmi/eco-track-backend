@@ -31,7 +31,8 @@ public class VehiculeController {
         return ResponseEntity.status(200).body(vehicleService.update(id, vehicle));
     }
     @DeleteMapping("/{id}")
-    public void deleteVehicle(@PathVariable String id) {
+    public ResponseEntity<Void> deleteVehicle(@PathVariable String id) {
         vehicleService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

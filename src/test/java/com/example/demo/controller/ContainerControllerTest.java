@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;  // ← Crucial: Static imports for get/post/etc.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;  // ← Static imports for status/jsonPath/etc.
 
-@WebMvcTest(ContainerController.class)  // Only loads controller layer
+@WebMvcTest(ContainerController.class)
 class ContainerControllerTest {
     @Autowired
     private MockMvc mockMvc;
