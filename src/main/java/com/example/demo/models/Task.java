@@ -19,6 +19,7 @@ public class Task {
     private String containerId;
 
     private String assignedTo; // employeeId
+    private String title;
 
     private String status;     // NEW, ASSIGNED, IN_PROGRESS, DONE
     private String priority;   // LOW, MEDIUM, HIGH

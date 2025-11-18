@@ -1,17 +1,18 @@
-package com.example.demo;
+package com.example.demo.service.report;
 import com.example.demo.models.Report;
 import com.example.demo.repositories.ReportRepository;
 import com.example.demo.service.report.ReportServiceImpl;
 import com.example.demo.service.storage.SupabaseStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+@ExtendWith(MockitoExtension.class)
 class ReportServiceImplTest {
 
     @Mock
@@ -23,10 +24,7 @@ class ReportServiceImplTest {
     @InjectMocks
     private ReportServiceImpl service;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
+
 
     @Test
     void testCreateReport() throws Exception {
