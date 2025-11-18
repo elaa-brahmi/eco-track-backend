@@ -1,4 +1,5 @@
 package com.example.demo.service.task;
+import com.example.demo.dto.UpdateTaskRequest;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
 
@@ -9,6 +10,6 @@ public interface TaskService {
     Task findById(String id);
     Task create(Task task);
     Task assign(String taskId, Employee employee);
-    Task updateStatus(String taskId, String status);
+    Task updateStatus(String taskId, UpdateTaskRequest request);
     void delete(String id);
 }

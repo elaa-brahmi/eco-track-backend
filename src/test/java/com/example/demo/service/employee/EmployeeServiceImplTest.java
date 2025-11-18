@@ -1,15 +1,18 @@
-package com.example.demo;
+package com.example.demo.service.employee;
 import com.example.demo.models.Employee;
 import com.example.demo.repositories.EmployeeRepository;
 import com.example.demo.service.employee.EmployeeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+@ExtendWith(MockitoExtension.class)
 class EmployeeServiceImplTest {
 
     @Mock
@@ -18,10 +21,6 @@ class EmployeeServiceImplTest {
     @InjectMocks
     private EmployeeServiceImpl service;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void testCreate() {

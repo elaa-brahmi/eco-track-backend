@@ -1,16 +1,18 @@
-package com.example.demo;
+package com.example.demo.service.task;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
 import com.example.demo.repositories.TaskRepository;
-import com.example.demo.service.task.TaskServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+@ExtendWith(MockitoExtension.class)
 class TaskServiceImplTest {
 
     @Mock
@@ -19,10 +21,6 @@ class TaskServiceImplTest {
     @InjectMocks
     private TaskServiceImpl service;
 
-    @BeforeEach
-    void init() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void testCreate() {
