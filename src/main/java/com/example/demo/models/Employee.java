@@ -10,11 +10,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @Builder
 @Document("employees")
-public class Employee {
+public class Employee extends User{
 
     @Id
     private String id;
-    private String name;
-    private String role; // DRIVER, COLLECTOR, MAINTENANCE
+    private String role;
     private boolean available;
 }
