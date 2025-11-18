@@ -1,5 +1,6 @@
 package com.example.demo.service.task;
 
+import com.example.demo.dto.UpdateTaskRequest;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
 import com.example.demo.repositories.TaskRepository;
@@ -42,9 +43,11 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task updateStatus(String taskId, String status) {
+    public Task updateStatus(String taskId, UpdateTaskRequest request) {
         Task task = findById(taskId);
-        task.setStatus(status);
+
+        // Only update fields that are present in the request
+        task.setStatus(request.status());
         return repository.save(task);
     }
 
