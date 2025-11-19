@@ -5,6 +5,11 @@ spring:
     mongodb:
       uri: ${MONGO_URI}
       database: ecoTrack
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:14082/realms/springboot-test
 supabase:
   url: ${SUPABASE_URL}
   key: ${SUPABASE_SECRET}
