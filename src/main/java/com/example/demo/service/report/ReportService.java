@@ -9,4 +9,5 @@ public interface ReportService {
     Report create(MultipartFile file, String description, String location);
     List<Report> findAll();
     Report resolve(String id);
+    Report getReport(String id);
 }

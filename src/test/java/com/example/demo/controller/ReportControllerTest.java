@@ -79,6 +79,18 @@ class ReportControllerTest {
 
         verify(reportService).findAll();
     }
+    @Test
+    void getReport() throws Exception {
+        Report r1 = Report.builder().id("1").description("Full bin").status("NEW").build();
+        when(reportService.getReport(anyString())).thenReturn(r1);
+        mockMvc.perform(get(BASE_URL + "/" + r1.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("1"))
+                .andExpect(jsonPath("$.description").value("Full bin"))
+                .andExpect(jsonPath("$.status").value("NEW"));
+        verify(reportService).getReport("1");
+
+    }
 
     @Test
     void resolveReport() throws Exception {

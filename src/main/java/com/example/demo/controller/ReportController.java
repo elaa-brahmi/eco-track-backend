@@ -29,4 +29,9 @@ public class ReportController {
     public Report resolve(@PathVariable String id) {
         return reportService.resolve(id);
     }
+
+    @GetMapping("/{id}")
+    public Report getReport(@PathVariable String id) {
+        return reportService.getReport(id);
+    }
 }
