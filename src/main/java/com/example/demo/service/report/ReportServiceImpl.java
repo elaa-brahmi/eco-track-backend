@@ -4,6 +4,7 @@ import com.example.demo.models.Report;
 import com.example.demo.repositories.ReportRepository;
 import com.example.demo.service.storage.SupabaseStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,7 +14,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ReportServiceImpl implements ReportService {
-
+    private final SimpMessagingTemplate ws;
     private final ReportRepository repo;
     private final SupabaseStorageService storageService;
 
@@ -38,6 +39,8 @@ public class ReportServiceImpl implements ReportService {
                 .createdAt(Instant.now())
                 .status("NEW")
                 .build();
+        // get the report instantly on the dashboard.
+        ws.convertAndSend("/topic/reports", report);
 
         return repo.save(report);
     }
@@ -53,6 +56,12 @@ public class ReportServiceImpl implements ReportService {
                 .orElseThrow(() -> new RuntimeException("Report not found"));
         r.setStatus("RESOLVED");
         return repo.save(r);
+    }
+    @Override
+    public Report getReport(String id) {
+        Report r=repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Report not found"));
+        return r;
     }
 }
 
