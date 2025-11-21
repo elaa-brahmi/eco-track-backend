@@ -1,6 +1,5 @@
 package com.example.demo.controller;
 
-
 import com.example.demo.models.Report;
 import com.example.demo.service.report.ReportService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.List;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -35,6 +35,7 @@ class ReportControllerTest {
 
     @Test
     void createReport() throws Exception {
+
         MockMultipartFile image = new MockMultipartFile(
                 "file", "photo.jpg", "image/jpeg", "test image".getBytes());
 
@@ -44,14 +45,17 @@ class ReportControllerTest {
         Report saved = Report.builder()
                 .id("1")
                 .description("Bin overflowing")
-                .location("10.3300, 36.8800")
+                .location(new double[]{10.3300, 36.8800})
                 .photoUrl("https://supabase.co/storage/xyz.jpg")
                 .status("NEW")
                 .createdAt(Instant.now())
                 .build();
 
-        when(reportService.create(any(), eq("Bin overflowing"), eq("36.8800,10.3300")))
-                .thenReturn(saved);
+        when(reportService.create(
+                any(),
+                eq("Bin overflowing"),
+                eq(new double[]{36.8800, 10.3300})
+        )).thenReturn(saved);
 
         mockMvc.perform(multipart("/api/reports")
                         .file(image)
@@ -61,8 +65,9 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.status").value("NEW"));
 
-        verify(reportService).create(any(), anyString(), anyString());
+        verify(reportService).create(any(), anyString(), any(double[].class));
     }
+
     @Test
     void listReports() throws Exception {
         Report r1 = Report.builder().id("1").description("Full bin").status("NEW").build();
@@ -79,17 +84,19 @@ class ReportControllerTest {
 
         verify(reportService).findAll();
     }
+
     @Test
     void getReport() throws Exception {
         Report r1 = Report.builder().id("1").description("Full bin").status("NEW").build();
         when(reportService.getReport(anyString())).thenReturn(r1);
+
         mockMvc.perform(get(BASE_URL + "/" + r1.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.description").value("Full bin"))
                 .andExpect(jsonPath("$.status").value("NEW"));
-        verify(reportService).getReport("1");
 
+        verify(reportService).getReport("1");
     }
 
     @Test
@@ -112,21 +119,26 @@ class ReportControllerTest {
 
     @Test
     void createReport_withoutImage() throws Exception {
+
         MockMultipartFile emptyFile = new MockMultipartFile(
                 "file", "", "image/jpeg", new byte[0]);
-        MockPart description = new MockPart("description", "Bin overflowing".getBytes());
-        MockPart location = new MockPart("location", "36.8800,10.3300".getBytes());
+
+        MockPart description = new MockPart("description", "No photo but urgent".getBytes());
+        MockPart location = new MockPart("location", "36.862,10.195".getBytes());
 
         Report saved = Report.builder()
                 .id("rep-002")
                 .description("No photo but urgent")
-                .location("10.195, 36.862")
+                .location(new double[]{10.195, 36.862})
                 .status("NEW")
                 .createdAt(Instant.now())
                 .build();
 
-        when(reportService.create(any(), eq("No photo but urgent"), eq("36.862,10.195")))
-                .thenReturn(saved);
+        when(reportService.create(
+                any(),
+                eq("No photo but urgent"),
+                eq(new double[]{36.862, 10.195})
+        )).thenReturn(saved);
 
         mockMvc.perform(multipart(BASE_URL)
                         .file(emptyFile)
@@ -134,6 +146,6 @@ class ReportControllerTest {
                         .part(location))
                 .andExpect(status().isOk());
 
-        verify(reportService).create(any(), anyString(), anyString());
+        verify(reportService).create(any(), anyString(), any(double[].class));
     }
 }

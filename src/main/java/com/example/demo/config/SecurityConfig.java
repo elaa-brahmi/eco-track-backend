@@ -33,7 +33,7 @@ public class SecurityConfig {
 
                         // PUBLIC — NO TOKEN NEEDED
                         .requestMatchers("/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/reports").permitAll()   // optional: public list
+                        //.requestMatchers(HttpMethod.GET, "/api/reports").permitAll()   // optional: public list
 
                         // ADMIN ONLY
                         .requestMatchers("/api/employees/**").hasRole("admin-role")
@@ -41,7 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/containers/**").hasRole("admin-role")
 
                         // TASKS
-                        .requestMatchers("/api/tasks").hasRole("admin-role")                          // POST /api/tasks
+                        .requestMatchers("/api/tasks").hasRole("admin-role") // POST /api/tasks
                         .requestMatchers(HttpMethod.GET, "/api/tasks").hasAnyRole("admin-role", "employee-role")
 
                         // REPORTS — ONLY authenticated users (employee/admin) can manage
