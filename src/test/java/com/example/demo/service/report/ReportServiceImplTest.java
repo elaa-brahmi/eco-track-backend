@@ -39,7 +39,7 @@ class ReportServiceImplTest {
 
         when(repo.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-        Report result = service.create(file, "Overflowing", "10.1, 368");
+        Report result = service.create(file, "Overflowing", new double[]{10.3300, 36.8800});
 
         assertEquals("https://supabase/image.jpg", result.getPhotoUrl());
         assertEquals("Overflowing", result.getDescription());
