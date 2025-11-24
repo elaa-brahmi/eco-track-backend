@@ -21,6 +21,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     public Employee findById(String id) {
         return employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("employee not found"));
     }
+    @Override
+    public Employee findByKeycloakId(String keycloakId) {
+        return employeeRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Employee not registered in system"));
+    }
 
     @Override
     public Employee create(Employee e) {
@@ -30,7 +35,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Employee update(String id, Employee e) {
-        Employee employee = employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Container not found"));
+        Employee employee = employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("employee not found"));
         employee.setName(e.getName());
         employee.setAvailable(e.isAvailable());
         employee.setRole(e.getRole());
