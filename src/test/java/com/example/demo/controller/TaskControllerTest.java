@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.config.SecurityConfig;
 import com.example.demo.dto.UpdateTaskRequest;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
@@ -8,7 +9,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,10 +20,13 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TaskController.class)
+@Import(SecurityConfig.class)
+
 class TaskControllerTest {
 
     @Autowired
@@ -41,7 +47,9 @@ class TaskControllerTest {
 
         when(taskService.findAll()).thenReturn(List.of(t1, t2));
 
-        mockMvc.perform(get(BASE_URL))
+        mockMvc.perform(get(BASE_URL)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].title").value("Collect plastic - La Marsa"))
@@ -61,7 +69,9 @@ class TaskControllerTest {
 
         when(taskService.findById("99")).thenReturn(task);
 
-        mockMvc.perform(get(BASE_URL + "/99"))
+        mockMvc.perform(get(BASE_URL + "/99")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("99"))
                 .andExpect(jsonPath("$.title").value("Urgent: Overflow in Carthage"))
@@ -89,7 +99,9 @@ class TaskControllerTest {
 
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(input)))
+                        .content(objectMapper.writeValueAsString(input))
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isCreated())  // 201
                 .andExpect(jsonPath("$.id").value("task-001"))
                 .andExpect(jsonPath("$.status").value("NEW"))
@@ -113,7 +125,10 @@ class TaskControllerTest {
 
         mockMvc.perform(patch(BASE_URL + "/t-55/assign")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(employee)))
+                        .content(objectMapper.writeValueAsString(employee))
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assignedTo").value("emp-007"))
                 .andExpect(jsonPath("$.status").value("ASSIGNED"));
@@ -140,7 +155,9 @@ class TaskControllerTest {
 
         mockMvc.perform(put(BASE_URL + "/t-88")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
+                        .content(json)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.assignedTo").value("emp-007"));
@@ -154,7 +171,9 @@ class TaskControllerTest {
     void deleteTask() throws Exception {
         doNothing().when(taskService).delete("del-123");
 
-        mockMvc.perform(delete(BASE_URL + "/del-123"))
+        mockMvc.perform(delete(BASE_URL + "/del-123")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isNoContent());
 
         verify(taskService).delete("del-123");

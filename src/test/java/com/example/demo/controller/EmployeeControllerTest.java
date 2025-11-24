@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.config.SecurityConfig;
 import com.example.demo.models.Container;
 import com.example.demo.models.Employee;
 import com.example.demo.service.container.ContainerService;
@@ -11,7 +12,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -22,10 +25,12 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;  // ← Crucial: Static imports for get/post/etc.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;  // ← Static imports for status/jsonPath/etc.
 
 @WebMvcTest(EmployeeController.class)  // Only loads controller layer
+@Import(SecurityConfig.class)
 class EmployeeControllerTest {
 
     @Autowired
@@ -49,7 +54,8 @@ class EmployeeControllerTest {
         when(employeeService.create(any(Employee.class))).thenReturn(savedEmp);
         mockMvc.perform(MockMvcRequestBuilders.post(BASE_URL)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(e1)))
+                    .content(objectMapper.writeValueAsString(e1))
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.name").value("ahmed"))
@@ -57,12 +63,24 @@ class EmployeeControllerTest {
         verify(employeeService,times(1)).create(any(Employee.class));
 
     }
+    @Test
+    void citizenCannotCreateEmployee() throws Exception {
+        Employee e1 = Employee.builder().name("ahmed").available(true).build();
+
+        mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(e1))
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_citizen-role"))))
+                .andExpect(status().isForbidden());
+    }
 
     @Test
     void getEmployeeById() throws Exception {
         Employee c1 = Employee.builder().id("1").name("ahmed").build();
         when(employeeService.findById("1")).thenReturn(c1);
-        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL + "/{id}", 1))
+        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL + "/{id}", 1)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.name").value("ahmed"));
@@ -76,7 +94,9 @@ class EmployeeControllerTest {
 
         when(employeeService.findAll()).thenReturn(List.of(e1, e2));
 
-        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL))
+        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -106,7 +126,9 @@ class EmployeeControllerTest {
 
         mockMvc.perform(put(BASE_URL + "/{id}", "7")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updated)))
+                        .content(objectMapper.writeValueAsString(updated))
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("7"))
                 .andExpect(jsonPath("$.name").value("new name"))
@@ -122,7 +144,9 @@ class EmployeeControllerTest {
             throws Exception {
         doNothing().when(employeeService).delete("42");
 
-        mockMvc.perform(delete(BASE_URL + "/{id}", "42"))
+        mockMvc.perform(delete(BASE_URL + "/{id}", "42")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk());
         verify(employeeService, times(1)).delete("42");
 

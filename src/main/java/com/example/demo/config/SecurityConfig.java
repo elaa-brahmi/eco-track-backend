@@ -41,13 +41,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/containers/**").hasRole("admin-role")
 
                         // TASKS
-                        .requestMatchers("/api/tasks").hasRole("admin-role") // POST /api/tasks
+                        .requestMatchers("/api/tasks/**").hasRole("admin-role")
                         .requestMatchers(HttpMethod.GET, "/api/tasks").hasAnyRole("admin-role", "employee-role")
 
-                        // REPORTS — ONLY authenticated users (employee/admin) can manage
-                        .requestMatchers(
-                                "/api/reports/**"
-                        ).hasAnyRole("admin-role", "citizen-role")
+
+                        .requestMatchers("/api/reports").hasAnyRole("admin-role", "citizen-role")
+                        .requestMatchers("/api/reports/**").hasAnyRole("admin-role", "citizen-role")
+
 
                         // EVERYTHING ELSE → requires login
                         .anyRequest().authenticated()
