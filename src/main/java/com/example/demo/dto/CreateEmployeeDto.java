@@ -8,4 +8,5 @@ public class CreateEmployeeDto {
     private String name;
     private String email;
     private String password;
+    private String role;
 }
