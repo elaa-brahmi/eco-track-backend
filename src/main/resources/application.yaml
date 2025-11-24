@@ -15,7 +15,7 @@ supabase:
   key: ${SUPABASE_SECRET}
   bucket: ecoTrackImages
 keycloak:
-  auth-server-url: http://localhost:8080
+  auth-server-url: http://localhost:14082/
   realm: springboot-test
   resource: ${ADMIN_ID}
   credentials:
