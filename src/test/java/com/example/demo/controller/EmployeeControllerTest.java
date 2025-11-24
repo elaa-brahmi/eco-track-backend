@@ -1,15 +1,14 @@
 package com.example.demo.controller;
 
 import com.example.demo.config.SecurityConfig;
-import com.example.demo.models.Container;
+import com.example.demo.dto.CreateEmployeeDto;
 import com.example.demo.models.Employee;
-import com.example.demo.service.container.ContainerService;
+import com.example.demo.repositories.EmployeeRepository;
 import com.example.demo.service.employee.EmployeeService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.demo.service.employee.KeycloakAdminService;
+
 import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -18,7 +17,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.util.List;
 
@@ -29,7 +27,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;  // ← Crucial: Static imports for get/post/etc.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;  // ← Static imports for status/jsonPath/etc.
 
-@WebMvcTest(EmployeeController.class)  // Only loads controller layer
+@WebMvcTest(EmployeeController.class)
 @Import(SecurityConfig.class)
 class EmployeeControllerTest {
 
@@ -38,6 +36,10 @@ class EmployeeControllerTest {
 
     @MockitoBean
     private EmployeeService employeeService;
+    @MockitoBean
+    private KeycloakAdminService keycloakAdminService;
+    @MockitoBean
+    private EmployeeRepository employeeRepository;
 
     @Autowired
     private ObjectMapper objectMapper;  // For JSON conversion
@@ -62,6 +64,58 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.available").value(true));
         verify(employeeService,times(1)).create(any(Employee.class));
 
+    }
+
+    @Test
+    void createEmployee_asAdmin_shouldCreateInKeycloakAndMongoDB() throws Exception {
+        // GIVEN - DTO from admin
+        CreateEmployeeDto dto = new CreateEmployeeDto();
+        dto.setName("Mohamed Ali");
+        dto.setEmail("mohamed@wasteflow.tn");
+        dto.setPassword("Tunis2025!");
+
+        // Keycloak returns a fake sub (Keycloak user ID)
+        String fakeKeycloakId = "f8e1a2b3-c4d5-6789-abcd-ef1234567890";
+        when(keycloakAdminService.createEmployeeUser(
+                eq("mohamed@wasteflow.tn"),
+                eq("Mohamed Ali"),
+                eq("Tunis2025!")
+        )).thenReturn(fakeKeycloakId);
+
+        // MongoDB save returns the same object with generated ID
+        Employee savedEmployee = Employee.builder()
+                .id("emp-123")
+                .keycloakId(fakeKeycloakId)
+                .name("Mohamed Ali")
+                .email("mohamed@wasteflow.tn")
+                .available(true)
+                .build();
+
+        when(employeeRepository.save(any(Employee.class)))
+                .thenReturn(savedEmployee);
+
+        // WHEN & THEN
+        mockMvc.perform(MockMvcRequestBuilders.post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto))
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("emp-123"))
+                .andExpect(jsonPath("$.keycloakId").value(fakeKeycloakId))
+                .andExpect(jsonPath("$.name").value("Mohamed Ali"))
+                .andExpect(jsonPath("$.email").value("mohamed@wasteflow.tn"))
+                .andExpect(jsonPath("$.available").value(true));
+
+        // VERIFY: Keycloak was called
+        verify(keycloakAdminService).createEmployeeUser(
+                "mohamed@wasteflow.tn", "Mohamed Ali", "Tunis2025!");
+
+        // VERIFY: MongoDB was saved with correct keycloakId
+        verify(employeeRepository).save(argThat(emp ->
+                fakeKeycloakId.equals(emp.getKeycloakId()) &&
+                        "Mohamed Ali".equals(emp.getName()) &&
+                        "mohamed@wasteflow.tn".equals(emp.getEmail())
+        ));
     }
     @Test
     void citizenCannotCreateEmployee() throws Exception {
