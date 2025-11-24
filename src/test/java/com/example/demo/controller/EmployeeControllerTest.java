@@ -7,8 +7,12 @@ import com.example.demo.repositories.EmployeeRepository;
 import com.example.demo.service.employee.EmployeeService;
 import com.example.demo.service.employee.KeycloakAdminService;
 
+import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.UsersResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -18,7 +22,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,31 +46,17 @@ class EmployeeControllerTest {
     private KeycloakAdminService keycloakAdminService;
     @MockitoBean
     private EmployeeRepository employeeRepository;
+    @MockitoBean
+    private Keycloak keycloak;
 
     @Autowired
     private ObjectMapper objectMapper;  // For JSON conversion
 
     private final String BASE_URL = "/api/employees";
+    private static final String KEYCLOAK_ID = "f8e1a2b3-c4d5-6789-abcd-ef1234567890";
 
 
-    @Test
-    void createEmployee() throws Exception {
-        //input without id
-        Employee e1=Employee.builder().name("ahmed").available(true).build();
-        //what the service returns + generated id
-        Employee savedEmp = Employee.builder().id("1").name("ahmed").available(true).build();
-        when(employeeService.create(any(Employee.class))).thenReturn(savedEmp);
-        mockMvc.perform(MockMvcRequestBuilders.post(BASE_URL)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(e1))
-                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.name").value("ahmed"))
-                .andExpect(jsonPath("$.available").value(true));
-        verify(employeeService,times(1)).create(any(Employee.class));
 
-    }
 
     @Test
     void createEmployee_asAdmin_shouldCreateInKeycloakAndMongoDB() throws Exception {
@@ -73,6 +65,7 @@ class EmployeeControllerTest {
         dto.setName("Mohamed Ali");
         dto.setEmail("mohamed@wasteflow.tn");
         dto.setPassword("Tunis2025!");
+        dto.setRole("technician");
 
         // Keycloak returns a fake sub (Keycloak user ID)
         String fakeKeycloakId = "f8e1a2b3-c4d5-6789-abcd-ef1234567890";
@@ -89,6 +82,7 @@ class EmployeeControllerTest {
                 .name("Mohamed Ali")
                 .email("mohamed@wasteflow.tn")
                 .available(true)
+                .role("technician")
                 .build();
 
         when(employeeRepository.save(any(Employee.class)))
@@ -104,6 +98,7 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.keycloakId").value(fakeKeycloakId))
                 .andExpect(jsonPath("$.name").value("Mohamed Ali"))
                 .andExpect(jsonPath("$.email").value("mohamed@wasteflow.tn"))
+                .andExpect(jsonPath("$.role").value("technician"))
                 .andExpect(jsonPath("$.available").value(true));
 
         // VERIFY: Keycloak was called
@@ -115,6 +110,7 @@ class EmployeeControllerTest {
                 fakeKeycloakId.equals(emp.getKeycloakId()) &&
                         "Mohamed Ali".equals(emp.getName()) &&
                         "mohamed@wasteflow.tn".equals(emp.getEmail())
+                && "technician".equals(emp.getRole())
         ));
     }
     @Test
@@ -194,15 +190,31 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void deleteEmployee()
-            throws Exception {
-        doNothing().when(employeeService).delete("42");
+    void deleteEmployee() throws Exception {
+        // GIVEN: Mock the EXACT chain your controller uses
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
 
-        mockMvc.perform(delete(BASE_URL + "/{id}", "42")
+        when(keycloak.realm("springboot-test")).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.delete(KEYCLOAK_ID))
+                .thenReturn(Response.noContent().build());
+
+        Employee employee = Employee.builder()
+                .id("emp-123")
+                .keycloakId(KEYCLOAK_ID)
+                .name("Sami")
+                .email("sami@wasteflow.tn")
+                .build();
+
+        when(employeeRepository.findByKeycloakId(KEYCLOAK_ID))
+                .thenReturn(Optional.of(employee));
+
+        mockMvc.perform(delete("/api/employees/{keycloakId}", KEYCLOAK_ID)
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+                .andExpect(status().isNoContent());
 
-                .andExpect(status().isOk());
-        verify(employeeService, times(1)).delete("42");
-
+        verify(usersResource).delete(KEYCLOAK_ID);
+        verify(employeeRepository).delete(employee);
     }
 }

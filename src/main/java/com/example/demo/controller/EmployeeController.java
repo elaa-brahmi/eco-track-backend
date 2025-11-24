@@ -6,12 +6,14 @@ import com.example.demo.service.employee.KeycloakAdminService;
 import com.example.demo.repositories.EmployeeRepository;
 
 
-
+import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import org.keycloak.admin.client.Keycloak;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -21,11 +23,8 @@ public class EmployeeController {
     private final EmployeeService employeeService;
     private final KeycloakAdminService keycloakAdminService;
     private final EmployeeRepository employeeRepository;
+    private final Keycloak keycloak;
 
-    /*@PostMapping()
-    public ResponseEntity<Employee> createEmployee(@RequestBody Employee employee) {
-        return ResponseEntity.status(201).body(employeeService.create(employee));
-    }*/
 
     @PostMapping()
     public Employee create(@RequestBody CreateEmployeeDto dto) {
@@ -40,6 +39,8 @@ public class EmployeeController {
                 .name(dto.getName())
                 .email(dto.getEmail())
                 .available(true)
+                .createdAt(Instant.now())
+                .role(dto.getRole())
                 .build();
 
         return employeeRepository.save(emp);
@@ -59,9 +60,25 @@ public class EmployeeController {
     public ResponseEntity<Employee> updateEmployee(@PathVariable String id, @RequestBody Employee employee) {
         return ResponseEntity.status(200).body(employeeService.update(id, employee));
     }
-    @DeleteMapping("/{id}")
-    public void deleteEmployee(@PathVariable String id) {
-        employeeService.delete(id);
+    @DeleteMapping("/{keycloakId}")
+    public ResponseEntity<Void> deleteEmployee(@PathVariable String keycloakId) {
+        Response response = keycloak.realm("springboot-test")
+                .users()
+                .delete(keycloakId);
+
+        if (response.getStatus() == 404) {
+            throw new RuntimeException("Employee not found in Keycloak");
+        }
+        if (response.getStatus() != 204) {
+            throw new RuntimeException("Failed to delete from Keycloak: " + response.getStatus());
+        }
+
+        Employee employee = employeeRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Employee not found in database"));
+
+        employeeRepository.delete(employee);
+
+        return ResponseEntity.noContent().build();
     }
 
 }
