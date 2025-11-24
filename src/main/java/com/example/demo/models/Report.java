@@ -17,7 +17,7 @@ public class Report {
 
     private String description;
     private String photoUrl;
-    private String location;
+    private double[] location;
 
     private String status; // NEW, IN_PROGRESS, RESOLVED
 

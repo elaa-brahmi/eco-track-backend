@@ -5,9 +5,25 @@ spring:
     mongodb:
       uri: ${MONGO_URI}
       database: ecoTrack
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:14082/realms/springboot-test
 supabase:
   url: ${SUPABASE_URL}
   key: ${SUPABASE_SECRET}
   bucket: ecoTrackImages
+keycloak:
+  auth-server-url: http://localhost:14082/
+  realm: springboot-test
+  resource: ${ADMIN_ID}
+  credentials:
+    secret: ${ADMIN_SECRET}
+  ssl-required: external
+  use-resource-role-mappings: true
+  bearer-only: false
+  public-client: false
+  confidential-port: 0
 server:
   port: 8080

@@ -10,5 +10,6 @@ public interface EmployeeService {
     Employee findById(String id);
     Employee create(Employee e);
     Employee update(String id, Employee e);
+     Employee findByKeycloakId(String keycloakId);
     void delete(String id);
 }

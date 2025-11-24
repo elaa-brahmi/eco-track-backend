@@ -23,6 +23,7 @@ public class Task {
 
     private String status;     // NEW, ASSIGNED, IN_PROGRESS, DONE
     private String priority;   // LOW, MEDIUM, HIGH
+    private Instant dueDate;
 
     private Instant createdAt;
 }

@@ -16,7 +16,7 @@ public class ReportController {
     @PostMapping(value="", consumes= "multipart/form-data")
     public Report create(@RequestPart("file") MultipartFile file,
                          @RequestPart("description") String description,
-                         @RequestPart("location") String location) {
+                         @RequestPart("location") double[] location) {
         return reportService.create(file, description, location);
     }
 
@@ -28,5 +28,10 @@ public class ReportController {
     @PutMapping("/{id}/resolve")
     public Report resolve(@PathVariable String id) {
         return reportService.resolve(id);
+    }
+
+    @GetMapping("/{id}")
+    public Report getReport(@PathVariable String id) {
+        return reportService.getReport(id);
     }
 }
