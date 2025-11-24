@@ -5,6 +5,7 @@ import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
 import com.example.demo.repositories.TaskRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -13,6 +14,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
+    private final SimpMessagingTemplate ws;
+
 
     private final TaskRepository repository;
 
@@ -39,6 +42,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = findById(taskId);
         task.setAssignedTo(employee.getId());
         task.setStatus("ASSIGNED");
+        ws.convertAndSend("/topic/tasks", task);
         return repository.save(task);
     }
 
