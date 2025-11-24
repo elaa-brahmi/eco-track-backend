@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.*;
 
@@ -20,6 +21,8 @@ class TaskServiceImplTest {
 
     @InjectMocks
     private TaskServiceImpl service;
+    @Mock private SimpMessagingTemplate ws;
+
 
 
     @Test
@@ -48,5 +51,7 @@ class TaskServiceImplTest {
 
         assertEquals(e2.getId(), updated.getAssignedTo());
         assertEquals("ASSIGNED", updated.getStatus());
+        verify(ws).convertAndSend("/topic/tasks", updated);
+
     }
 }

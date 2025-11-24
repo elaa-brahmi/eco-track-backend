@@ -1,0 +1,42 @@
+#Setting up the keycloak see: https://www.keycloak.org/getting-started/getting-started-docker
+version: "3.1"
+
+
+services:
+  keycloak-db:
+    image: postgres:11.4
+    command:
+      ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    ports:
+      - "14092:5432"
+    volumes:
+      - keycloak-db:/var/lib/postgresql/data
+
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.0
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak-db
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_DB_URL_PORT: 5432
+
+      KC_BOOTSTRAP_ADMIN_USERNAME: keycloak
+      KC_BOOTSTRAP_ADMIN_PASSWORD: keycloak
+
+
+    command: start-dev
+    ports:
+      - "14082:8080"
+    depends_on:
+      - keycloak-db
+    restart: unless-stopped
+
+
+volumes:
+  keycloak-db:
