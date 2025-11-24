@@ -22,7 +22,6 @@ public class Employee{
     private String name;
     private String email;
     private String password;
-    private Role roleUser;
     private Instant createdAt;
     private String role;
     private boolean available;
