@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 import com.example.demo.dto.CreateEmployeeDto;
 import com.example.demo.models.Employee;
+import com.example.demo.models.Role;
 import com.example.demo.service.employee.EmployeeService;
 import com.example.demo.service.employee.KeycloakAdminService;
 import com.example.demo.repositories.EmployeeRepository;
@@ -40,7 +41,7 @@ public class EmployeeController {
                 .email(dto.getEmail())
                 .available(true)
                 .createdAt(Instant.now())
-                .role(dto.getRole())
+                .role(Role.valueOf(dto.getRole()))
                 .build();
 
         return employeeRepository.save(emp);

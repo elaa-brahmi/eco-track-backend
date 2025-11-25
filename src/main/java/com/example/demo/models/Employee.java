@@ -23,6 +23,6 @@ public class Employee{
     private String email;
     private String password;
     private Instant createdAt;
-    private String role;
+    private Role role;
     private boolean available;
 }
