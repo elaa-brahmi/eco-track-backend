@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.config.SecurityConfig;
 import com.example.demo.models.Report;
+import com.example.demo.models.ReportStatus;
 import com.example.demo.service.report.ReportService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ class ReportControllerTest {
                 .description("Garbage overflow at Soukra")
                 .location(new double[]{36.8065, 10.1815})
                 .photoUrl("https://supabase.co/storage/.../photo.jpg")
-                .status("NEW")
+                .status(ReportStatus.NEW)
                 .createdAt(Instant.now())
                 .build();
 
@@ -107,7 +108,7 @@ class ReportControllerTest {
     @Test
     void ResolveReport() throws Exception {
         Report resolved = new Report();
-        resolved.setStatus("resolved");
+        resolved.setStatus(ReportStatus.RESOLVED);
 
         when(reportService.resolve("123")).thenReturn(resolved);
 
@@ -123,7 +124,7 @@ class ReportControllerTest {
                 .description("Garbage overflow at Soukra")
                 .location(new double[]{36.8065, 10.1815})
                 .photoUrl("https://supabase.co/storage/.../photo.jpg")
-                .status("NEW")
+                .status(ReportStatus.NEW)
                 .createdAt(Instant.now())
                 .build();
 

@@ -19,7 +19,8 @@ public class Report {
     private String photoUrl;
     private double[] location;
 
-    private String status; // NEW, IN_PROGRESS, RESOLVED
+    private ReportStatus status; // NEW, IN_PROGRESS, RESOLVED
+    private ReportType type;
 
     private Instant createdAt;
 }

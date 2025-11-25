@@ -25,5 +25,8 @@ keycloak:
   bearer-only: false
   public-client: false
   confidential-port: 0
+huggingface:
+  api:
+    key: ${HUGGIN_FACE_KEY}
 server:
   port: 8080
