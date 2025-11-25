@@ -38,6 +38,7 @@ public class ReportServiceImpl implements ReportService {
         }
         //use categorize ai to categorize the report depending on description
         ReportType type = categorizationService.categorize(description);
+
         Report report = Report.builder()
                 .description(description)
                 .location(location)
