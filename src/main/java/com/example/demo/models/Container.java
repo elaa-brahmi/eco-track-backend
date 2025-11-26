@@ -20,7 +20,7 @@ public class Container {
     private Instant lastUpdated;
 
     // GeoJSON location
-    private double[] location; //
+    private double[] location;
 
     //private List<Prediction> predictions; // optional
 }
