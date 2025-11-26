@@ -28,5 +28,8 @@ keycloak:
 huggingface:
   api:
     key: ${HUGGIN_FACE_KEY}
+grok:
+  api:
+    key: ${GROK_API_KEY}
 server:
   port: 8080

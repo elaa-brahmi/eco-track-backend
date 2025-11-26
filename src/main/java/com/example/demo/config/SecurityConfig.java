@@ -33,7 +33,7 @@ public class SecurityConfig {
 
                         // PUBLIC — NO TOKEN NEEDED
                         .requestMatchers("/health").permitAll()
-                        //.requestMatchers(HttpMethod.GET, "/api/reports").permitAll()   // optional: public list
+                        .requestMatchers(HttpMethod.POST, "/api/reports").permitAll()   // optional: public list
 
                         // ADMIN ONLY
                         .requestMatchers("/api/employees/**").hasRole("admin-role")
@@ -45,8 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/tasks").hasAnyRole("admin-role", "employee-role")
 
 
-                        .requestMatchers("/api/reports").hasAnyRole("admin-role", "citizen-role")
-                        .requestMatchers("/api/reports/**").hasAnyRole("admin-role", "citizen-role")
+                        .requestMatchers("/api/reports/**").hasAnyRole("admin-role")
 
 
                         // EVERYTHING ELSE → requires login

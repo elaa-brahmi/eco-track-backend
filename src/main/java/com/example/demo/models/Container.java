@@ -20,7 +20,7 @@ public class Container {
     private Instant lastUpdated;
 
     // GeoJSON location
-    private double[] location; // [lng, lat] - match Mongo's 2dsphere expectation
+    private double[] location; //
 
     //private List<Prediction> predictions; // optional
 }

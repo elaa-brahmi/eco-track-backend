@@ -37,20 +37,27 @@ public class ReportServiceImpl implements ReportService {
             }
         }
         //use categorize ai to categorize the report depending on description
-        ReportType type = categorizationService.categorize(description);
+        try {
+            ReportType type = categorizationService.categorize(description);
+            Report report = Report.builder()
+                    .description(description)
+                    .location(location)
+                    .type(type)
+                    .photoUrl(imageUrl)
+                    .createdAt(Instant.now())
+                    .status(ReportStatus.NEW)
+                    .build();
+            // get the report instantly on the dashboard.
+            ws.convertAndSend("/topic/reports", report);
 
-        Report report = Report.builder()
-                .description(description)
-                .location(location)
-                .type(type)
-                .photoUrl(imageUrl)
-                .createdAt(Instant.now())
-                .status(ReportStatus.NEW)
-                .build();
-        // get the report instantly on the dashboard.
-        ws.convertAndSend("/topic/reports", report);
+            return repo.save(report);
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Categorization failed", e);
 
-        return repo.save(report);
+        }
+
+
     }
 
     @Override

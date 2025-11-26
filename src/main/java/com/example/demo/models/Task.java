@@ -14,16 +14,16 @@ public class Task {
 
     @Id
     private String id;
-
-    private String type;       // COLLECTION or INCIDENT
     private String containerId;
+    private String vehiculeId;
 
-    private String assignedTo; // employeeId
+    private String assignedTo; // teamId
     private String title;
 
     private String status;     // NEW, ASSIGNED, IN_PROGRESS, DONE
     private String priority;   // LOW, MEDIUM, HIGH
     private Instant dueDate;
+    private String reportId;
 
     private Instant createdAt;
 }
