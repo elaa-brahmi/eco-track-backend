@@ -14,7 +14,7 @@ import java.time.Instant;
 public class Container {
     @Id
     private String id;
-    private String type; // plastic, organic ...
+    private String type; // plastic, organic ,glass,paper
     private int fillLevel; // 0-100
     private String status; // normal, overflowing, maintenance
     private Instant lastEmptied;

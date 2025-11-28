@@ -18,10 +18,8 @@ public class Task {
     private String id;
     private List<String> containersIDs;
     private String vehiculeId;
-
     private List<String> employeesIDs;
     private String title;
-
     private TaskStatus status;     // pending, IN_PROGRESS, DONE
     private TaskPriority priority;   // LOW, MEDIUM, HIGH
     private Instant dueDate;

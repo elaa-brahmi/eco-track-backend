@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -25,4 +26,5 @@ public class Employee{
     private Instant createdAt;
     private Role role;
     private boolean available;
+    private List<AssignmentSlot> schedule;
 }

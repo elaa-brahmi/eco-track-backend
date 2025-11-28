@@ -85,18 +85,6 @@ class ReportControllerTest {
                 .andExpect(status().isOk());
     }
 
-    @Test
-    void ResolveReport() throws Exception {
-        Report resolved = new Report();
-        resolved.setStatus(ReportStatus.RESOLVED);
-
-        when(reportService.resolve("123")).thenReturn(resolved);
-
-        mockMvc.perform(put("/api/reports/123/resolve")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
-                .andExpect(status().isOk());
-    }
-
 
     @Test
     void shouldDenyAccess_withoutToken() throws Exception {

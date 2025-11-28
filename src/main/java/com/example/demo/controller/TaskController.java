@@ -1,8 +1,11 @@
 package com.example.demo.controller;
+import com.example.demo.dto.ResolveReportRequest;
+import com.example.demo.dto.ResolveReportResponse;
 import com.example.demo.dto.TaskRequest;
 import com.example.demo.dto.UpdateTaskRequest;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
+import com.example.demo.service.task.TaskAssignmentService;
 import com.example.demo.service.task.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TaskController {
     private final TaskService taskService;
+    private final TaskAssignmentService taskAssignmentService;
 
     @GetMapping()
     public ResponseEntity<List<Task>> getAllTasks() {
@@ -27,17 +31,21 @@ public class TaskController {
         return ResponseEntity.status(200).body(taskService.findById(id));
     }
 
+   @PostMapping("/{reportId}/resolve")
+   public ResponseEntity<ResolveReportResponse> resolveReport(
+           @PathVariable String reportId,
+           @RequestBody ResolveReportRequest req
+   ) {
+       ResolveReportResponse response = taskAssignmentService.resolveReport(reportId, req);
+       return ResponseEntity.ok(response);
+   }
 
-    @PatchMapping("/{id}/assign")
-    public ResponseEntity<Task> assignToTask( @RequestBody TaskRequest task) {
-        return ResponseEntity.status(200).body(taskService.assign(task));
-
+    @PostMapping("/tasks/{taskId}/complete")
+    public ResponseEntity<String> completeTask(@PathVariable String taskId) {
+        taskAssignmentService.completeTask(taskId);
+        return ResponseEntity.ok("Task completed. Employees and vehicle are now free.");
     }
-    @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable String id, @RequestBody @Valid UpdateTaskRequest request) {
-        return ResponseEntity.status(200).body(taskService.updateStatus(id, request));
 
-    }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable String id) {
         taskService.delete(id);
