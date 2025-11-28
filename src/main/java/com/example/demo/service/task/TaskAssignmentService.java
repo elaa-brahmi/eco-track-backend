@@ -56,7 +56,11 @@ public class TaskAssignmentService {
         task.setReportId(reportId);
         task.setCreatedAt(Instant.now());
         task.setDueDate(req.getEnd());
-        task.setContainersIDs(List.of(container.getId()));
+        if (container != null) {
+            task.setContainersIDs(List.of(container.getId()));
+        } else {
+            task.setContainersIDs(List.of()); // empty if none
+        }
         task.setEmployeesIDs(assignedEmployeeIds);
         task.setVehiculeId(vehicle.getId());
 
@@ -101,13 +105,18 @@ public class TaskAssignmentService {
 
     // ---- VEHICLE ASSIGNMENT ----
     private Vehicle assignVehicle(ResolveReportRequest req, Container container) {
-        return vehicleRepo.findByAvailableTrue().stream()
-                .sorted(Comparator.comparingDouble(v ->
-                        haversine(v.getLocation(), container.getLocation())))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No available vehicles"));
-    }
+        List<Vehicle> allVehicles = vehicleRepo.findAll(); // get all vehicles
+        if (allVehicles.isEmpty()) {
+            throw new RuntimeException("No vehicles exist in the system");
+        }
 
+        // Try to find nearest available vehicle
+        return allVehicles.stream()
+                .min(Comparator.comparingDouble(v ->
+                        haversine(v.getLocation(), container != null ? container.getLocation() : new double[]{0,0})
+                ))
+                .get(); // safe because allVehicles is not empty
+    }
     // ---- AVAILABILITY BLOCK ----
     private void blockAvailability(List<String> employeeIds, String vehicleId, String taskId, Instant start, Instant end) {
 
@@ -115,6 +124,12 @@ public class TaskAssignmentService {
         employeeIds.forEach(id -> {
             employeeRepo.findById(id).ifPresentOrElse(emp -> {
                 emp.setAvailable(false);
+
+                // Initialize schedule if null
+                if (emp.getSchedule() == null) {
+                    emp.setSchedule(new ArrayList<>());
+                }
+
                 emp.getSchedule().add(new AssignmentSlot(taskId, start, end));
                 employeeRepo.save(emp);
             }, () -> {
@@ -123,9 +138,13 @@ public class TaskAssignmentService {
         });
 
 
+
         // Vehicle
         vehicleRepo.findById(vehicleId).ifPresentOrElse(vehicle -> {
             vehicle.setAvailable(false);
+            if (vehicle.getSchedule() == null) {
+                vehicle.setSchedule(new ArrayList<>());
+            }
             vehicle.getSchedule().add(new AssignmentSlot(taskId, start, end));
             vehicleRepo.save(vehicle);
         }, () -> {

@@ -206,6 +206,38 @@ class TaskServiceImplTest {
         verify(taskRepo, times(1)).deleteById("t1");
     }
 
+    @Test
+    void getTasksByEmployeeId_returnsTasksForEmployee() {
+        Task task1 = new Task();
+        task1.setId("t1");
+        task1.setEmployeesIDs(List.of("e1", "e2"));
+
+        Task task2 = new Task();
+        task2.setId("t2");
+        task2.setEmployeesIDs(List.of("e3"));
+
+        Task task3 = new Task();
+        task3.setId("t3");
+        task3.setEmployeesIDs(null);
+
+        when(taskRepo.findAll()).thenReturn(List.of(task1, task2, task3));
+
+        List<Task> result = taskService.getTasksByEmployeeId("e1");
+
+        assertEquals(1, result.size());
+        assertEquals("t1", result.get(0).getId());
+    }
+
+    @Test
+    void getTasksByEmployeeId_returnsEmptyListIfNoTasks() {
+        when(taskRepo.findAll()).thenReturn(List.of());
+
+        List<Task> result = taskService.getTasksByEmployeeId("e1");
+
+        assertEquals(0, result.size());
+    }
+
+
 
 
 }

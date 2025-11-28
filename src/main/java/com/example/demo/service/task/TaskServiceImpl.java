@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -36,4 +37,13 @@ public class TaskServiceImpl implements TaskService {
     public void delete(String id) {
         repository.deleteById(id);
     }
+
+    @Override
+    public List<Task> getTasksByEmployeeId(String employeeId) {
+        return repository.findAll().stream()
+                .filter(task -> task.getEmployeesIDs() != null && !task.getEmployeesIDs().isEmpty())
+                .filter(task -> task.getEmployeesIDs().contains(employeeId))
+                .toList();
+    }
+
 }

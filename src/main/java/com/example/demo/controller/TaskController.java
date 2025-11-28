@@ -30,6 +30,10 @@ public class TaskController {
     public ResponseEntity<Task> getTaskById(@PathVariable String id) {
         return ResponseEntity.status(200).body(taskService.findById(id));
     }
+    @GetMapping("/employees/{employeeId}")
+    public ResponseEntity<List<Task>> getTasksByEmployeeId(@PathVariable String employeeId) {
+        return ResponseEntity.status(200).body(taskService.getTasksByEmployeeId(employeeId));
+    }
 
    @PostMapping("/{reportId}/resolve")
    public ResponseEntity<ResolveReportResponse> resolveReport(

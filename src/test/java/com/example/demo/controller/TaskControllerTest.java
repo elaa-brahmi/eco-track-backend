@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.ResolveReportResponse;
 
+import com.example.demo.models.Task;
 import com.example.demo.service.task.TaskAssignmentService;
 import com.example.demo.service.task.TaskService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,10 +16,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
+import java.util.List;
 
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.*;
+
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -43,7 +45,7 @@ class TaskControllerTest {
         ResolveReportResponse mockResp =
                 new ResolveReportResponse("t1", "task assigned");
 
-        Mockito.when(service.resolveReport(eq("r1"), any()))
+        when(service.resolveReport(eq("r1"), any()))
                 .thenReturn(mockResp);
 
         mockMvc.perform(post("/api/tasks/r1/resolve")
@@ -81,6 +83,36 @@ class TaskControllerTest {
                 .andExpect(content().string("Task completed. Employees and vehicle are now free."));
 
         verify(service, times(1)).completeTask(taskId);
+    }
+    @Test
+    void getTasksByEmployeeId_returnsTasks() throws Exception {
+        Task task = new Task();
+        task.setId("t1");
+        task.setEmployeesIDs(List.of("e1"));
+
+        when(Taskservice.getTasksByEmployeeId("e1")).thenReturn(List.of(task));
+
+        mockMvc.perform(get("/api/tasks/employees/e1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_employee-role")
+                        )))
+
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("t1"));
+    }
+
+    @Test
+    void getTasksByEmployeeId_returnsEmptyList() throws Exception {
+        when(Taskservice.getTasksByEmployeeId("e2")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/tasks/employees/e2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_employee-role")
+                        )))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
 }
