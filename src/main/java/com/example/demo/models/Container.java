@@ -17,10 +17,9 @@ public class Container {
     private String type; // plastic, organic ...
     private int fillLevel; // 0-100
     private String status; // normal, overflowing, maintenance
+    private Instant lastEmptied;
     private Instant lastUpdated;
 
-    // GeoJSON location
     private double[] location;
 
-    //private List<Prediction> predictions; // optional
 }

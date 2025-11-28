@@ -1,4 +1,5 @@
 package com.example.demo.controller;
+import com.example.demo.dto.TaskRequest;
 import com.example.demo.dto.UpdateTaskRequest;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
@@ -26,14 +27,10 @@ public class TaskController {
         return ResponseEntity.status(200).body(taskService.findById(id));
     }
 
-    @PostMapping()
-    public ResponseEntity<Task> createTask(@RequestBody Task task) {
-        return ResponseEntity.status(201).body(taskService.create(task));
-    }
 
     @PatchMapping("/{id}/assign")
-    public ResponseEntity<Task> assignToTask(@PathVariable String id, @RequestBody Employee employee) {
-        return ResponseEntity.status(200).body(taskService.assign(id, employee));
+    public ResponseEntity<Task> assignToTask( @RequestBody TaskRequest task) {
+        return ResponseEntity.status(200).body(taskService.assign(task));
 
     }
     @PutMapping("/{id}")

@@ -31,5 +31,7 @@ huggingface:
 grok:
   api:
     key: ${GROK_API_KEY}
+osrm:
+  url: http://localhost:5000
 server:
   port: 8080

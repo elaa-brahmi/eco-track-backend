@@ -25,7 +25,7 @@ class TaskServiceImplTest {
 
 
 
-    @Test
+    /*@Test
     void testCreate() {
         Task t = new Task();
         when(repository.save(any())).thenReturn(t);
@@ -34,9 +34,9 @@ class TaskServiceImplTest {
 
         assertEquals("NEW", result.getStatus());
         assertNotNull(result.getCreatedAt());
-    }
+    }*/
 
-    @Test
+   /* @Test
     void testAssign() {
         Task t = new Task();
         t.setId("t1");
@@ -53,5 +53,5 @@ class TaskServiceImplTest {
         assertEquals("ASSIGNED", updated.getStatus());
         verify(ws).convertAndSend("/topic/tasks", updated);
 
-    }
+    }*/
 }

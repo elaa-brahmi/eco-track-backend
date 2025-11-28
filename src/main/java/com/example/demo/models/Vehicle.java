@@ -13,8 +13,8 @@ public class Vehicle {
 
     @Id
     private String id;
-
     private String name;
+    private boolean available;
     private double[] location;
     private double capacity;
 }

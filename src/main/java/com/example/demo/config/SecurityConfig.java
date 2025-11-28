@@ -33,7 +33,11 @@ public class SecurityConfig {
 
                         // PUBLIC — NO TOKEN NEEDED
                         .requestMatchers("/health").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/reports").permitAll()   // optional: public list
+                        .requestMatchers(HttpMethod.POST, "/api/reports").permitAll()
+                        .requestMatchers("/api/route/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/ws").permitAll()
+                        .requestMatchers("/topic/**").permitAll()
 
                         // ADMIN ONLY
                         .requestMatchers("/api/employees/**").hasRole("admin-role")
@@ -61,6 +65,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedOrigins(List.of("http://localhost:3000"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

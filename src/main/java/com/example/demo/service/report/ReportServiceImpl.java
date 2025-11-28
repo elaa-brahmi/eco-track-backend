@@ -48,9 +48,10 @@ public class ReportServiceImpl implements ReportService {
                     .status(ReportStatus.NEW)
                     .build();
             // get the report instantly on the dashboard.
+            repo.save(report);
             ws.convertAndSend("/topic/reports", report);
 
-            return repo.save(report);
+            return report;
         }
         catch (Exception e) {
             throw new RuntimeException("Categorization failed", e);

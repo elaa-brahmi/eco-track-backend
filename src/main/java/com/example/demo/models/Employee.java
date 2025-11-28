@@ -24,6 +24,5 @@ public class Employee{
     private String password;
     private Instant createdAt;
     private Role role;
-    private String teamId;
     private boolean available;
 }

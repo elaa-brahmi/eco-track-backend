@@ -19,8 +19,8 @@ public class Report {
     private String photoUrl;
     private double[] location;
 
-    private ReportStatus status; // NEW, IN_PROGRESS, RESOLVED
-    private ReportType type;
+    private ReportStatus status; // NEW, Under_Review, RESOLVED
+    private ReportType type; //Organic_waste_issue,Overflow,Sanitation_problem
 
     private Instant createdAt;
 }
