@@ -1,6 +1,9 @@
 package com.example.demo.service.report;
 import com.example.demo.models.Report;
+import com.example.demo.models.ReportStatus;
+import com.example.demo.models.ReportType;
 import com.example.demo.repositories.ReportRepository;
+import com.example.demo.service.ai.AiCategorizationService;
 import com.example.demo.service.report.ReportServiceImpl;
 import com.example.demo.service.storage.SupabaseStorageService;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +28,8 @@ class ReportServiceImplTest {
 
     @Mock
     private SupabaseStorageService storageService;
+    @Mock
+    private AiCategorizationService categorizationService;
     @Mock private SimpMessagingTemplate ws;
 
     @InjectMocks
@@ -38,7 +43,7 @@ class ReportServiceImplTest {
                 .description("Garbage overflow in La Marsa")
                 .location(new double[]{36.8181, 10.3254})
                 .photoUrl("https://supabase.co/storage/old.jpg")
-                .status("NEW")
+                .status(ReportStatus.NEW)
                 .createdAt(Instant.now())
                 .build();
     }
@@ -52,8 +57,12 @@ class ReportServiceImplTest {
         when(file.getOriginalFilename()).thenReturn("test.jpg");
         when(file.getBytes()).thenReturn("fake-image-data".getBytes());
 
+
+
         when(storageService.uploadImage(any(), eq("jpg")))
                 .thenReturn("https://supabase.co/storage/image.jpg");
+        when(categorizationService.categorize("Overflowing bin in Tunis"))
+                .thenReturn(ReportType.Overflow);
 
 
         when(repo.save(any(Report.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -62,7 +71,8 @@ class ReportServiceImplTest {
 
         assertEquals("https://supabase.co/storage/image.jpg", result.getPhotoUrl());
         assertEquals("Overflowing bin in Tunis", result.getDescription());
-        assertEquals("NEW", result.getStatus());
+        assertEquals("NEW", result.getStatus().toString());
+        assertEquals("Overflow",result.getType().toString());
         assertNotNull(result.getCreatedAt());
 
         // VERIFY WebSocket message was sent
@@ -73,7 +83,7 @@ class ReportServiceImplTest {
         // GIVEN
         List<Report> reports = List.of(
                 existingReport,
-                Report.builder().id("report-456").description("Bin on fire").status("NEW").build()
+                Report.builder().id("report-456").description("Bin on fire").status(ReportStatus.NEW).build()
         );
         when(repo.findAll()).thenReturn(reports);
 
@@ -96,7 +106,7 @@ class ReportServiceImplTest {
         // THEN
         assertEquals("report-123", result.getId());
         assertEquals("Garbage overflow in La Marsa", result.getDescription());
-        assertEquals("NEW", result.getStatus());
+        assertEquals("NEW", result.getStatus().toString());
         verify(repo).findById("report-123");
     }
     @Test
@@ -118,7 +128,7 @@ class ReportServiceImplTest {
 
         Report resolved = service.resolve("report-123");
 
-        assertEquals("RESOLVED", resolved.getStatus());
+        assertEquals("RESOLVED", resolved.getStatus().toString());
         assertSame(existingReport, resolved);
 
         verify(repo).findById("report-123");

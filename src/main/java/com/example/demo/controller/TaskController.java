@@ -1,7 +1,11 @@
 package com.example.demo.controller;
+import com.example.demo.dto.ResolveReportRequest;
+import com.example.demo.dto.ResolveReportResponse;
+import com.example.demo.dto.TaskRequest;
 import com.example.demo.dto.UpdateTaskRequest;
 import com.example.demo.models.Employee;
 import com.example.demo.models.Task;
+import com.example.demo.service.task.TaskAssignmentService;
 import com.example.demo.service.task.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TaskController {
     private final TaskService taskService;
+    private final TaskAssignmentService taskAssignmentService;
 
     @GetMapping()
     public ResponseEntity<List<Task>> getAllTasks() {
@@ -25,22 +30,26 @@ public class TaskController {
     public ResponseEntity<Task> getTaskById(@PathVariable String id) {
         return ResponseEntity.status(200).body(taskService.findById(id));
     }
-
-    @PostMapping()
-    public ResponseEntity<Task> createTask(@RequestBody Task task) {
-        return ResponseEntity.status(201).body(taskService.create(task));
+    @GetMapping("/employees/{employeeId}")
+    public ResponseEntity<List<Task>> getTasksByEmployeeId(@PathVariable String employeeId) {
+        return ResponseEntity.status(200).body(taskService.getTasksByEmployeeId(employeeId));
     }
 
-    @PatchMapping("/{id}/assign")
-    public ResponseEntity<Task> assignToTask(@PathVariable String id, @RequestBody Employee employee) {
-        return ResponseEntity.status(200).body(taskService.assign(id, employee));
+   @PostMapping("/{reportId}/resolve")
+   public ResponseEntity<ResolveReportResponse> resolveReport(
+           @PathVariable String reportId,
+           @RequestBody ResolveReportRequest req
+   ) {
+       ResolveReportResponse response = taskAssignmentService.resolveReport(reportId, req);
+       return ResponseEntity.ok(response);
+   }
 
+    @PostMapping("/tasks/{taskId}/complete")
+    public ResponseEntity<String> completeTask(@PathVariable String taskId) {
+        taskAssignmentService.completeTask(taskId);
+        return ResponseEntity.ok("Task completed. Employees and vehicle are now free.");
     }
-    @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable String id, @RequestBody @Valid UpdateTaskRequest request) {
-        return ResponseEntity.status(200).body(taskService.updateStatus(id, request));
 
-    }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable String id) {
         taskService.delete(id);

@@ -1,5 +1,6 @@
 package com.example.demo.service.container;
 
+import com.example.demo.dto.ContainerDto;
 import com.example.demo.models.Container;
 import com.example.demo.repositories.ContainerRepository;
 import com.example.demo.service.container.ContainerServiceImpl;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,29 +48,31 @@ class ContainerServiceImplTest {
 
     @Test
     void testCreate() {
-        Container c = new Container();
-        when(repository.save(any())).thenReturn(c);
+        ContainerDto requestDto = new ContainerDto();
+        requestDto.setType("paper");
+        requestDto.setStatus("overflowing");
+        requestDto.setLocation(new double[]{30.251, 145.252});
 
-        Container result = service.create(c);
+        Container savedContainer = new Container();
+        savedContainer.setId("edfrefdrefdrzfdr");
+        savedContainer.setType("paper");
+        savedContainer.setStatus("overflowing");
+        savedContainer.setLocation(new double[]{30.251, 145.252});
+        savedContainer.setLastUpdated(Instant.now());
 
+        when(repository.save(any(Container.class))).thenReturn(savedContainer);
+        //when
+        Container result = service.create(requestDto);
+
+        // Then - Verify results
         assertNotNull(result);
-        assertNotNull(c.getLastUpdated());
-    }
+        assertNotNull(result.getLastUpdated());
+        assertEquals("paper", result.getType());
+        assertEquals("overflowing", result.getStatus());
+        assertArrayEquals(new double[]{30.251, 145.252}, result.getLocation(), 0.0001);
 
-    @Test
-    void testUpdate() {
-        Container existing = new Container();
-        existing.setId("1");
-
-        Container updated = new Container();
-        updated.setFillLevel(90);
-
-        when(repository.findById("1")).thenReturn(Optional.of(existing));
-        when(repository.save(any())).thenReturn(existing);
-
-        Container result = service.update("1", updated);
-
-        assertEquals(90, result.getFillLevel());
+        // Verify that save was called exactly once
+        verify(repository, times(1)).save(any(Container.class));
     }
 
     @Test

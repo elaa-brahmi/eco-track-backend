@@ -47,4 +47,29 @@ class EmployeeServiceImplTest {
 
         assertEquals("John", result.getName());
     }
+    @Test
+    void findByKeycloakId_returnsEmployee() {
+        Employee emp = new Employee();
+        emp.setId("123");
+        emp.setKeycloakId("kc123");
+
+        when(repository.findByKeycloakId("kc123"))
+                .thenReturn(Optional.of(emp));
+
+        Employee result = service.findByKeycloakId("kc123");
+
+        assertNotNull(result);
+        assertEquals("kc123", result.getKeycloakId());
+    }
+    @Test
+    void findByKeycloakId_throwsExceptionWhenNotFound() {
+        when(repository.findByKeycloakId("missing"))
+                .thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> service.findByKeycloakId("missing"));
+
+        assertEquals("Employee not registered in system", ex.getMessage());
+    }
+
 }

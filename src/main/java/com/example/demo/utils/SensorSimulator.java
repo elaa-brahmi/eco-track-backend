@@ -17,8 +17,9 @@ public class SensorSimulator {
     private final ContainerRepository repo;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 30 * 60 * 1000)
     public void simulate() {
+        System.out.println("Simulating");
         List<Container> containers = repo.findAll();
 
         for (Container c : containers) {
@@ -26,12 +27,12 @@ public class SensorSimulator {
             int newFill = Math.min(100, c.getFillLevel() + noise);
 
             c.setFillLevel(newFill);
-            if (newFill >= 90) c.setStatus("ALERT");
-            if (newFill == 100) c.setStatus("FULL");
+            if(newFill >=50) c.setStatus("half fill");
+            if (newFill >= 90) c.setStatus("alert");
+            if (newFill == 100) c.setStatus("full");
 
             repo.save(c);
 
-            // BROADCAST LIVE UPDATE
             messagingTemplate.convertAndSend("/topic/containers", c);
         }
     }

@@ -1,5 +1,6 @@
 package com.example.demo.service.container;
 
+import com.example.demo.dto.ContainerDto;
 import com.example.demo.models.Container;
 import com.example.demo.repositories.ContainerRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +27,13 @@ public class ContainerServiceImpl implements ContainerService {
     }
 
     @Override
-    public Container create(Container c) {
-        c.setLastUpdated(Instant.now());
-        return repository.save(c);
+    public Container create(ContainerDto c) {
+        Container container = new Container();
+        container.setType(c.getType());
+        container.setLocation(c.getLocation());
+        container.setLastUpdated(Instant.now());
+        container.setStatus(c.getStatus());
+        return repository.save(container);
     }
 
     @Override
