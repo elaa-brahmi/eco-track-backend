@@ -86,10 +86,9 @@ class TaskServiceImplTest {
         when(employeeRepo.findByRoleAndAvailableTrue(Role.collector_role))
                 .thenReturn(List.of(collector));
         when(employeeRepo.findById("e1")).thenReturn(Optional.of(collector));
-        when(vehicleRepo.findByAvailableTrue()).thenReturn(List.of(vehicle));
         when(vehicleRepo.findById("v1")).thenReturn(Optional.of(vehicle));
         when(taskRepo.save(any(Task.class))).thenReturn(savedTask);
-
+        when(vehicleRepo.findAll()).thenReturn(List.of(vehicle));
         //when
         ResolveReportResponse response = service.resolveReport("r1", request);
         //then
@@ -121,6 +120,7 @@ class TaskServiceImplTest {
         Task task = new Task();
         task.setId("t1");
         task.setEmployeesIDs(List.of("e1"));
+        task.setContainersIDs(List.of("c1", "c2"));
         task.setVehiculeId("v1");
         task.setReportId("r1");
 
@@ -139,11 +139,24 @@ class TaskServiceImplTest {
         report.setId("r1");
         report.setStatus(ReportStatus.Under_Review);
 
+        // Containers
+        Container c1 = new Container();
+        c1.setId("c1");
+        c1.setFillLevel(50);
+        c1.setStatus("full");
+
+        Container c2 = new Container();
+        c2.setId("c2");
+        c2.setFillLevel(30);
+        c2.setStatus("full");
+
         // Mock repository calls
         when(taskRepo.findById("t1")).thenReturn(Optional.of(task));
         when(employeeRepo.findById("e1")).thenReturn(Optional.of(collector));
         when(vehicleRepo.findById("v1")).thenReturn(Optional.of(vehicle));
         when(reportRepo.findById("r1")).thenReturn(Optional.of(report));
+        when(containerRepo.findById("c1")).thenReturn(Optional.of(c1));
+        when(containerRepo.findById("c2")).thenReturn(Optional.of(c2));
 
         // Act
         service.completeTask("t1");
@@ -163,7 +176,19 @@ class TaskServiceImplTest {
         // Assert report
         assertEquals(ReportStatus.RESOLVED, report.getStatus());
         verify(reportRepo).save(report);
+
+        // Assert containers were reset
+        assertEquals(0, c1.getFillLevel());
+        assertEquals("normal", c1.getStatus());
+        assertNotNull(c1.getLastEmptied());
+
+        assertEquals(0, c2.getFillLevel());
+        assertEquals("normal", c2.getStatus());
+        assertNotNull(c2.getLastEmptied());
+
+        verify(containerRepo, times(2)).save(any(Container.class));
     }
+
 
     @Test
     void testFindAll() {

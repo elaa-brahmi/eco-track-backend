@@ -29,11 +29,11 @@ public class TaskAssignmentService {
             String reportId,
             ResolveReportRequest req
     ) {
-        // 1. Load the report
+        //  Load the report
         Report report = reportRepo.findById(reportId)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
 
-        // 2. Find nearest container to report
+        //  Find nearest container to report
         Container container = containerRepo
                 .findAll()
                 .stream()
@@ -42,13 +42,13 @@ public class TaskAssignmentService {
                 .orElseThrow(() -> new RuntimeException("No container found"));
         System.out.println(container);
 
-        // 3. Find required employees
+        //  Find required employees
         List<String> assignedEmployeeIds = assignEmployees(req, container);
 
-        // 4. Find nearest available vehicle
+        //  Find nearest available vehicle
         Vehicle vehicle = assignVehicle(req, container);
 
-        // 5. Create and save task
+        //  Create and save task
         Task task = new Task();
         task.setTitle(req.getTaskTitle());
         task.setPriority(req.getPriority());
@@ -69,10 +69,10 @@ public class TaskAssignmentService {
             ws.convertAndSend("/topic/tasks", task);
         }
 
-        // 6. Block employee + vehicle availability based on time range
+        //  Block employee + vehicle availability based on time range
         blockAvailability(assignedEmployeeIds, vehicle.getId(), task.getId(), req.getStart(), req.getEnd());
 
-        // 7. Update report status
+        //  Update report status
         report.setStatus(ReportStatus.Under_Review);
         reportRepo.save(report);
         return new ResolveReportResponse(task.getId(), "task assigned");
@@ -80,7 +80,7 @@ public class TaskAssignmentService {
 
     }
 
-    // ---- EMPLOYEE ASSIGNMENT ----
+    // employee assignment
     private List<String> assignEmployees(ResolveReportRequest req, Container container) {
 
         List<String> result = new ArrayList<>();
@@ -103,7 +103,7 @@ public class TaskAssignmentService {
     }
 
 
-    // ---- VEHICLE ASSIGNMENT ----
+    // vehicle assignment
     private Vehicle assignVehicle(ResolveReportRequest req, Container container) {
         List<Vehicle> allVehicles = vehicleRepo.findAll(); // get all vehicles
         if (allVehicles.isEmpty()) {
@@ -117,7 +117,7 @@ public class TaskAssignmentService {
                 ))
                 .get(); // safe because allVehicles is not empty
     }
-    // ---- AVAILABILITY BLOCK ----
+    // availability block
     private void blockAvailability(List<String> employeeIds, String vehicleId, String taskId, Instant start, Instant end) {
 
         // Employees
@@ -152,7 +152,7 @@ public class TaskAssignmentService {
         });
     }
 
-    // ---- HAVERSINE ----
+    // haversine
     private double haversine(double[] p1, double[] p2) {
         double R = 6371;
         double dLat = Math.toRadians(p2[0] - p1[0]);
@@ -170,6 +170,21 @@ public class TaskAssignmentService {
 
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        //reset containers fill level
+        if (task.getContainersIDs() != null) {
+            task.getContainersIDs().forEach(id -> {
+                Container c = containerRepo.findById(id).orElse(null);
+                if (c != null) {
+                    c.setFillLevel(0);
+                    c.setStatus("normal");
+                    c.setLastEmptied(Instant.now());
+                    containerRepo.save(c);
+
+                }
+            });
+        }
+
 
         // Free employees
         task.getEmployeesIDs().forEach(empId -> {

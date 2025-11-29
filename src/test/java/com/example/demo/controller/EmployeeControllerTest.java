@@ -218,4 +218,21 @@ class EmployeeControllerTest {
         verify(usersResource).delete(KEYCLOAK_ID);
         verify(employeeRepository).delete(employee);
     }
+    @Test
+    void getEmployeeByKeycloakId_returnsEmployee() throws Exception {
+        Employee emp = new Employee();
+        emp.setId("1");
+        emp.setKeycloakId("kc123");
+        emp.setName("Elaa Brahmi");
+
+        when(employeeService.findByKeycloakId("kc123")).thenReturn(emp);
+
+        mockMvc.perform(get("/api/employees/employee/kc123")
+                        .contentType(MediaType.APPLICATION_JSON)
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_employee-role"))))
+
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.keycloakId").value("kc123"))
+                .andExpect(jsonPath("$.name").value("Elaa Brahmi"));
+    }
 }

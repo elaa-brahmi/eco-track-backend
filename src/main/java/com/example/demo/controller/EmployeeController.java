@@ -53,6 +53,11 @@ public class EmployeeController {
 
     }
 
+    @GetMapping("/employee/{keycloakId}")
+    public ResponseEntity<Employee> getEmployeeByKeycloakId(@PathVariable String keycloakId){
+        return ResponseEntity.status(200).body(employeeService.findByKeycloakId(keycloakId));
+    }
+
     @GetMapping()
     public ResponseEntity<List<Employee>> getAllEmployees(){
         return ResponseEntity.status(200).body(employeeService.findAll());

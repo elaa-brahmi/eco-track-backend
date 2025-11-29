@@ -40,7 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/topic/**").permitAll()
 
                         // ADMIN ONLY
-                        .requestMatchers("/api/employees/**").hasRole("admin-role")
+                        .requestMatchers("/api/employees/**").hasAnyRole("admin-role","employee-role")
                         .requestMatchers("/api/vehicules/**").hasRole("admin-role")
                         .requestMatchers("/api/containers/**").hasRole("admin-role")
 
