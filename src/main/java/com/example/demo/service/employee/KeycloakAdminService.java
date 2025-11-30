@@ -18,7 +18,7 @@ public class KeycloakAdminService {
 
     public String createEmployeeUser(String email, String name, String password) {
         UserRepresentation user = new UserRepresentation();
-        user.setEnabled(true);                    // ← UNCOMMENT THIS
+        user.setEnabled(true);
         user.setUsername(email);
         user.setEmail(email);
         user.setFirstName(name);

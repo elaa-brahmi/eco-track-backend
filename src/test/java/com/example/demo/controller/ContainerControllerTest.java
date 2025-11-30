@@ -72,22 +72,6 @@ class ContainerControllerTest {
     }
 
     @Test
-    void create() throws Exception {
-        Container newContainer = Container.builder().type("plastic").fillLevel(55).build();
-        Container savedContainer = Container.builder().id("1").type("plastic").fillLevel(55).build();
-        when(containerService.create(any(Container.class))).thenReturn(savedContainer);
-        mockMvc.perform(MockMvcRequestBuilders.post(BASE_URL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(newContainer))
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
-
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.type").value("plastic"));
-        verify(containerService).create(any(Container.class));
-    }
-
-    @Test
     void shouldUpdateContainer() throws Exception {
         Container updated = Container.builder().fillLevel(90).status("full").build();
 

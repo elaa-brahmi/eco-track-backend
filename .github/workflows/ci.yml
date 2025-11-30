@@ -12,6 +12,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Inject environment variables from GitHub Secrets
+    env:
+      SPRING_PROFILES_ACTIVE: test
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      SUPABASE_SECRET: ${{ secrets.SUPABASE_SECRET }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+      ADMIN_ID: ${{ secrets.ADMIN_ID }}
+      GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,6 +40,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-m2-
+
+      # Optional: confirm env variables are loaded (without printing sensitive values)
+      - name: Debug Env Vars (safe)
+        run: |
+          echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE"
+          echo "Loaded secrets into environment."
 
       - name: Build & Run tests
         run: mvn -B clean verify

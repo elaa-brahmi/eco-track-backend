@@ -1,7 +1,10 @@
 package com.example.demo.service.report;
 
 import com.example.demo.models.Report;
+import com.example.demo.models.ReportStatus;
+import com.example.demo.models.ReportType;
 import com.example.demo.repositories.ReportRepository;
+import com.example.demo.service.ai.AiCategorizationService;
 import com.example.demo.service.storage.SupabaseStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -17,6 +20,7 @@ public class ReportServiceImpl implements ReportService {
     private final SimpMessagingTemplate ws;
     private final ReportRepository repo;
     private final SupabaseStorageService storageService;
+    private final AiCategorizationService categorizationService;
 
 
     @Override
@@ -32,17 +36,29 @@ public class ReportServiceImpl implements ReportService {
                 throw new RuntimeException("Image upload failed", e);
             }
         }
-        Report report = Report.builder()
-                .description(description)
-                .location(location)
-                .photoUrl(imageUrl)
-                .createdAt(Instant.now())
-                .status("NEW")
-                .build();
-        // get the report instantly on the dashboard.
-        ws.convertAndSend("/topic/reports", report);
+        //use categorize ai to categorize the report depending on description
+        try {
+            ReportType type = categorizationService.categorize(description);
+            Report report = Report.builder()
+                    .description(description)
+                    .location(location)
+                    .type(type)
+                    .photoUrl(imageUrl)
+                    .createdAt(Instant.now())
+                    .status(ReportStatus.NEW)
+                    .build();
+            // get the report instantly on the dashboard.
+            repo.save(report);
+            ws.convertAndSend("/topic/reports", report);
 
-        return repo.save(report);
+            return report;
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Categorization failed", e);
+
+        }
+
+
     }
 
     @Override
@@ -54,7 +70,7 @@ public class ReportServiceImpl implements ReportService {
     public Report resolve(String id) {
         Report r = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
-        r.setStatus("RESOLVED");
+        r.setStatus(ReportStatus.RESOLVED);
         return repo.save(r);
     }
     @Override
