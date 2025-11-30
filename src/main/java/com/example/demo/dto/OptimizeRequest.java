@@ -12,6 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OptimizeRequest {
-    private Vehicle vehicle;
-    private List<Container> containers;
+    private VehicleRequest vehicle;
+    private List<ContainerRequest> containers;
 }

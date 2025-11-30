@@ -43,14 +43,14 @@ class VehiculeControllerTest {
         Vehicle input = Vehicle.builder()
                 .name("Camion 01 - Tunis")
                 .location(new double[]{10.185, 36.810})
-                .capacity(16000.0)
+                .capacity(5)
                 .build();
 
         Vehicle saved = Vehicle.builder()
                 .id("veh-001")
                 .name("Camion 01 - Tunis")
                 .location(new double[]{10.185, 36.810})
-                .capacity(16000.0)
+                .capacity(5)
                 .build();
 
         when(vehicleService.create(any(Vehicle.class))).thenReturn(saved);
@@ -63,7 +63,7 @@ class VehiculeControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("veh-001"))
                 .andExpect(jsonPath("$.name").value("Camion 01 - Tunis"))
-                .andExpect(jsonPath("$.capacity").value(16000.0))
+                .andExpect(jsonPath("$.capacity").value(5))
                 .andExpect(jsonPath("$.location[0]").value(10.185))
                 .andExpect(jsonPath("$.location[1]").value(36.810));
 
@@ -76,13 +76,13 @@ class VehiculeControllerTest {
                 .id("1")
                 .name("Compacteur Sfax")
                 .location(new double[]{10.766, 34.740})
-                .capacity(20000.0)
+                .capacity(2)
                 .build();
         Vehicle v2 = Vehicle.builder()
                 .id("2")
                 .name("Petit Porteur Bizerte")
                 .location(new double[]{9.863, 37.276})
-                .capacity(8000.0)
+                .capacity(8)
                 .build();
 
         when(vehicleService.findAll()).thenReturn(List.of(v1, v2));
@@ -94,7 +94,7 @@ class VehiculeControllerTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Compacteur Sfax"))
                 .andExpect(jsonPath("$[0].location[0]").value(10.766))
-                .andExpect(jsonPath("$[1].capacity").value(8000.0));
+                .andExpect(jsonPath("$[1].capacity").value(8));
 
         verify(vehicleService).findAll();
     }
@@ -105,7 +105,7 @@ class VehiculeControllerTest {
                 .id("veh-777")
                 .name("Électrique La Marsa")
                 .location(new double[]{10.330, 36.880})
-                .capacity(12000.0)
+                .capacity(12)
                 .build();
 
         when(vehicleService.findById("veh-777")).thenReturn(vehicle);
@@ -116,7 +116,7 @@ class VehiculeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("veh-777"))
                 .andExpect(jsonPath("$.name").value("Électrique La Marsa"))
-                .andExpect(jsonPath("$.capacity").value(12000.0))
+                .andExpect(jsonPath("$.capacity").value(12))
                 .andExpect(jsonPath("$.location[1]").value(36.880));
 
         verify(vehicleService).findById("veh-777");
@@ -128,7 +128,7 @@ class VehiculeControllerTest {
                 .id("veh-555")
                 .name("Camion 02 - Ariana")
                 .location(new double[]{10.195, 36.862})
-                .capacity(18000.0)
+                .capacity(8)
                 .build();
 
         when(vehicleService.update(eq("veh-555"), any(Vehicle.class))).thenReturn(updated);
@@ -141,7 +141,7 @@ class VehiculeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Camion 02 - Ariana"))
                 .andExpect(jsonPath("$.location[0]").value(10.195))
-                .andExpect(jsonPath("$.capacity").value(18000.0));
+                .andExpect(jsonPath("$.capacity").value(8));
 
         verify(vehicleService).update(eq("veh-555"), any());
     }

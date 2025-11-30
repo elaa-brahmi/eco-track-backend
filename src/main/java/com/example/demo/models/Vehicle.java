@@ -18,6 +18,6 @@ public class Vehicle {
     private String name;
     private boolean available;
     private double[] location;
-    private double capacity;
+    private int capacity; //number max of containers
     private List<AssignmentSlot> schedule;
 }
