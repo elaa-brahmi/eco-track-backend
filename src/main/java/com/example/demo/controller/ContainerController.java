@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ContainerDto;
 import com.example.demo.models.Container;
 import com.example.demo.service.container.ContainerService;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class ContainerController {
     }
 
     @PostMapping
-    public ResponseEntity<Container> create(@RequestBody Container c) {
+    public ResponseEntity<Container> create(@RequestBody ContainerDto c) {
         return ResponseEntity.status(201).body(containerService.create(c));
     }
 

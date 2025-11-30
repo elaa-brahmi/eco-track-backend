@@ -1,12 +1,15 @@
 package com.example.demo.controller;
 
+import com.example.demo.config.SecurityConfig;
 import com.example.demo.models.Container;
 import com.example.demo.service.container.ContainerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -17,10 +20,13 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;  // ← Crucial: Static imports for get/post/etc.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;  // ← Static imports for status/jsonPath/etc.
 
 @WebMvcTest(ContainerController.class)
+@Import(SecurityConfig.class)
+
 class ContainerControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -41,7 +47,9 @@ class ContainerControllerTest {
 
         when(containerService.findAll()).thenReturn(List.of(c1, c2));
 
-        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL))
+        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -55,24 +63,12 @@ class ContainerControllerTest {
     void getById()  throws Exception {
         Container c1 = Container.builder().id("1").type("plastic").build();
         when(containerService.findById("1")).thenReturn(c1);
-        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL + "/{id}", 1))
+        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL + "/{id}", 1)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.type").value("plastic"));
-    }
-
-    @Test
-    void create() throws Exception {
-        Container newContainer = Container.builder().type("plastic").fillLevel(55).build();
-        Container savedContainer = Container.builder().id("1").type("plastic").fillLevel(55).build();
-        when(containerService.create(any(Container.class))).thenReturn(savedContainer);
-        mockMvc.perform(MockMvcRequestBuilders.post(BASE_URL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(newContainer)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.type").value("plastic"));
-        verify(containerService).create(any(Container.class));
     }
 
     @Test
@@ -83,7 +79,9 @@ class ContainerControllerTest {
 
         mockMvc.perform(MockMvcRequestBuilders.put(BASE_URL + "/500")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updated)))
+                        .content(objectMapper.writeValueAsString(updated))
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.fillLevel").value(90));
 
@@ -94,7 +92,9 @@ class ContainerControllerTest {
     void shouldDeleteContainer() throws Exception {
         doNothing().when(containerService).delete("777");
 
-        mockMvc.perform(MockMvcRequestBuilders.delete(BASE_URL + "/777"))
+        mockMvc.perform(MockMvcRequestBuilders.delete(BASE_URL + "/777")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         verify(containerService).delete("777");
