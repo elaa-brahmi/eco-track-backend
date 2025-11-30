@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 import com.example.demo.models.Report;
 import com.example.demo.service.report.ReportService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,12 +13,20 @@ import java.util.List;
 public class ReportController {
 
     private final ReportService reportService;
-    //@RequestPart (for multipart values)
-    @PostMapping(value="", consumes= "multipart/form-data")
-    public Report create(@RequestPart("file") MultipartFile file,
-                         @RequestPart("description") String description,
-                         @RequestPart("location") double[] location) {
-        return reportService.create(file, description, location);
+    @PostMapping(value = "", consumes = "multipart/form-data")
+    public Report create(
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("description") String description,
+            @RequestPart("location") String locationJson) {
+
+        try {
+            // Remove any whitespace just in case
+            String cleanJson = locationJson.replaceAll("\\s", "");
+            double[] location = new ObjectMapper().readValue(cleanJson, double[].class);
+            return reportService.create(file, description, location);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid location format: " + locationJson);
+        }
     }
 
     @GetMapping

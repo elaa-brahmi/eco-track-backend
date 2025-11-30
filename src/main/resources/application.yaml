@@ -25,5 +25,13 @@ keycloak:
   bearer-only: false
   public-client: false
   confidential-port: 0
+huggingface:
+  api:
+    key: ${HUGGIN_FACE_KEY}
+grok:
+  api:
+    key: ${GROK_API_KEY}
+osrm:
+  url: http://localhost:5000
 server:
   port: 8080

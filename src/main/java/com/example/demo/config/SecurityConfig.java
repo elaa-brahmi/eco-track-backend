@@ -33,20 +33,22 @@ public class SecurityConfig {
 
                         // PUBLIC — NO TOKEN NEEDED
                         .requestMatchers("/health").permitAll()
-                        //.requestMatchers(HttpMethod.GET, "/api/reports").permitAll()   // optional: public list
+                        .requestMatchers(HttpMethod.POST, "/api/reports").permitAll()
+                        .requestMatchers("/api/route/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/ws").permitAll()
+                        .requestMatchers("/topic/**").permitAll()
 
                         // ADMIN ONLY
-                        .requestMatchers("/api/employees/**").hasRole("admin-role")
+                        .requestMatchers("/api/employees/**").hasAnyRole("admin-role","employee-role")
                         .requestMatchers("/api/vehicules/**").hasRole("admin-role")
                         .requestMatchers("/api/containers/**").hasRole("admin-role")
 
                         // TASKS
-                        .requestMatchers("/api/tasks/**").hasRole("admin-role")
-                        .requestMatchers(HttpMethod.GET, "/api/tasks").hasAnyRole("admin-role", "employee-role")
+                        .requestMatchers("/api/tasks/**").hasAnyRole("admin-role","employee-role")
 
 
-                        .requestMatchers("/api/reports").hasAnyRole("admin-role", "citizen-role")
-                        .requestMatchers("/api/reports/**").hasAnyRole("admin-role", "citizen-role")
+                        .requestMatchers("/api/reports/**").hasAnyRole("admin-role")
 
 
                         // EVERYTHING ELSE → requires login
@@ -62,6 +64,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedOrigins(List.of("http://localhost:3000"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

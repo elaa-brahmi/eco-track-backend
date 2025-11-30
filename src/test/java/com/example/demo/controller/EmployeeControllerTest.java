@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.config.SecurityConfig;
 import com.example.demo.dto.CreateEmployeeDto;
 import com.example.demo.models.Employee;
+import com.example.demo.models.Role;
 import com.example.demo.repositories.EmployeeRepository;
 import com.example.demo.service.employee.EmployeeService;
 import com.example.demo.service.employee.KeycloakAdminService;
@@ -65,7 +66,7 @@ class EmployeeControllerTest {
         dto.setName("Mohamed Ali");
         dto.setEmail("mohamed@wasteflow.tn");
         dto.setPassword("Tunis2025!");
-        dto.setRole("technician");
+        dto.setRole("collector_role");
 
         // Keycloak returns a fake sub (Keycloak user ID)
         String fakeKeycloakId = "f8e1a2b3-c4d5-6789-abcd-ef1234567890";
@@ -82,7 +83,7 @@ class EmployeeControllerTest {
                 .name("Mohamed Ali")
                 .email("mohamed@wasteflow.tn")
                 .available(true)
-                .role("technician")
+                .role(Role.collector_role)
                 .build();
 
         when(employeeRepository.save(any(Employee.class)))
@@ -98,19 +99,19 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.keycloakId").value(fakeKeycloakId))
                 .andExpect(jsonPath("$.name").value("Mohamed Ali"))
                 .andExpect(jsonPath("$.email").value("mohamed@wasteflow.tn"))
-                .andExpect(jsonPath("$.role").value("technician"))
+                .andExpect(jsonPath("$.role").value("collector_role"))
                 .andExpect(jsonPath("$.available").value(true));
 
-        // VERIFY: Keycloak was called
+        // verify: Keycloak was called
         verify(keycloakAdminService).createEmployeeUser(
                 "mohamed@wasteflow.tn", "Mohamed Ali", "Tunis2025!");
 
-        // VERIFY: MongoDB was saved with correct keycloakId
+        // verify: MongoDB was saved with correct keycloakId
         verify(employeeRepository).save(argThat(emp ->
                 fakeKeycloakId.equals(emp.getKeycloakId()) &&
                         "Mohamed Ali".equals(emp.getName()) &&
                         "mohamed@wasteflow.tn".equals(emp.getEmail())
-                && "technician".equals(emp.getRole())
+                && "collector_role".equals(emp.getRole().toString())
         ));
     }
     @Test
@@ -161,14 +162,14 @@ class EmployeeControllerTest {
         Employee existing = Employee.builder()
                 .id("7")
                 .name("old name")
-                .role("driver")
+                .role(Role.collector_role)
                 .available(false)
                 .build();
 
         Employee updated = Employee.builder()
                 .id("7")
                 .name("new name")
-                .role("supervisor")
+                .role(Role.collector_role)
                 .available(true)
                 .build();
 
@@ -182,7 +183,7 @@ class EmployeeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("7"))
                 .andExpect(jsonPath("$.name").value("new name"))
-                .andExpect(jsonPath("$.role").value("supervisor"))
+                .andExpect(jsonPath("$.role").value("collector_role"))
                 .andExpect(jsonPath("$.available").value(true));
 
         verify(employeeService).update(eq("7"), any(Employee.class));
@@ -216,5 +217,22 @@ class EmployeeControllerTest {
 
         verify(usersResource).delete(KEYCLOAK_ID);
         verify(employeeRepository).delete(employee);
+    }
+    @Test
+    void getEmployeeByKeycloakId_returnsEmployee() throws Exception {
+        Employee emp = new Employee();
+        emp.setId("1");
+        emp.setKeycloakId("kc123");
+        emp.setName("Elaa Brahmi");
+
+        when(employeeService.findByKeycloakId("kc123")).thenReturn(emp);
+
+        mockMvc.perform(get("/api/employees/employee/kc123")
+                        .contentType(MediaType.APPLICATION_JSON)
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_employee-role"))))
+
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.keycloakId").value("kc123"))
+                .andExpect(jsonPath("$.name").value("Elaa Brahmi"));
     }
 }
