@@ -118,7 +118,7 @@ public class TaskAssignmentService {
                 .get(); // safe because allVehicles is not empty
     }
     // availability block
-    private void blockAvailability(List<String> employeeIds, String vehicleId, String taskId, Instant start, Instant end) {
+    private  void blockAvailability(List<String> employeeIds, String vehicleId, String taskId, Instant start, Instant end) {
 
         // Employees
         employeeIds.forEach(id -> {
@@ -171,7 +171,7 @@ public class TaskAssignmentService {
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        //reset containers fill level
+        // ---- RESET CONTAINERS ----
         if (task.getContainersIDs() != null) {
             task.getContainersIDs().forEach(id -> {
                 Container c = containerRepo.findById(id).orElse(null);
@@ -180,48 +180,60 @@ public class TaskAssignmentService {
                     c.setStatus("normal");
                     c.setLastEmptied(Instant.now());
                     containerRepo.save(c);
-
                 }
             });
         }
 
+        // ---- FREE EMPLOYEES ----
+        if (task.getEmployeesIDs() != null) {
+            task.getEmployeesIDs().forEach(empId -> {
+                employeeRepo.findById(empId).ifPresent(emp -> {
+                    emp.setAvailable(true);
 
-        // Free employees
-        task.getEmployeesIDs().forEach(empId -> {
-            Employee emp = employeeRepo.findById(empId).get();
-            emp.setAvailable(true);
+                    // cleanup assignment slots for this task
+                    if (emp.getSchedule() != null) {
+                        emp.setSchedule(
+                                emp.getSchedule().stream()
+                                        .filter(slot -> !slot.getTaskId().equals(taskId))
+                                        .toList()
+                        );
+                    }
 
-            // remove or cleanup assignment slots
-            emp.setSchedule(
-                    emp.getSchedule().stream()
-                            .filter(slot -> !slot.getTaskId().equals(taskId))
-                            .toList()
-            );
-
-            employeeRepo.save(emp);
-        });
-
-        // Free vehicle
-        Vehicle vehicle = vehicleRepo.findById(task.getVehiculeId()).get();
-        vehicle.setAvailable(true);
-
-        vehicle.setSchedule(
-                vehicle.getSchedule().stream()
-                        .filter(slot -> !slot.getTaskId().equals(taskId))
-                        .toList()
-        );
-
-        vehicleRepo.save(vehicle);
-
-        // Update task status
-        if(task.getReportId() != null) {
-            Report report = reportRepo.findById(task.getReportId()).get();
-            report.setStatus(ReportStatus.RESOLVED);
-            reportRepo.save(report);
+                    employeeRepo.save(emp);
+                });
+            });
         }
+
+        // ---- FREE VEHICLE ----
+        if (task.getVehiculeId() != null) {
+            vehicleRepo.findById(task.getVehiculeId()).ifPresent(vehicle -> {
+                vehicle.setAvailable(true);
+
+                if (vehicle.getSchedule() != null) {
+                    vehicle.setSchedule(
+                            vehicle.getSchedule().stream()
+                                    .filter(slot -> !slot.getTaskId().equals(taskId))
+                                    .toList()
+                    );
+                }
+
+                vehicleRepo.save(vehicle);
+            });
+        }
+
+        // ---- UPDATE TASK STATUS ----
         task.setStatus(TaskStatus.COMPLETED);
         taskRepo.save(task);
+
+        // ---- UPDATE REPORT STATUS IF EXISTS ----
+        if (task.getReportId() != null) {
+            reportRepo.findById(task.getReportId()).ifPresent(report -> {
+                report.setStatus(ReportStatus.RESOLVED);
+                reportRepo.save(report);
+            });
+        }
     }
+
 
 }
 
