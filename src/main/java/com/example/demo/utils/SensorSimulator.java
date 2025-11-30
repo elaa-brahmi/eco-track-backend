@@ -1,0 +1,39 @@
+package com.example.demo.utils;
+
+import com.example.demo.models.Container;
+import com.example.demo.repositories.ContainerRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Random;
+
+@Component
+@RequiredArgsConstructor
+public class SensorSimulator {
+
+    private final ContainerRepository repo;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    @Scheduled(fixedRate = 30 * 60 * 1000)
+    public void simulate() {
+        System.out.println("Simulating");
+        List<Container> containers = repo.findAll();
+
+        for (Container c : containers) {
+            int noise = new Random().nextInt(6);
+            int newFill = Math.min(100, c.getFillLevel() + noise);
+
+            c.setFillLevel(newFill);
+            if(newFill >=50) c.setStatus("half fill");
+            if (newFill >= 90) c.setStatus("alert");
+            if (newFill == 100) c.setStatus("full");
+
+            repo.save(c);
+
+            messagingTemplate.convertAndSend("/topic/containers", c);
+        }
+    }
+}

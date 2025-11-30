@@ -1,18 +1,24 @@
 package com.example.demo.service.task;
 
+import com.example.demo.dto.TaskRequest;
 import com.example.demo.dto.UpdateTaskRequest;
-import com.example.demo.models.Employee;
-import com.example.demo.models.Task;
+import com.example.demo.models.*;
+import com.example.demo.repositories.ContainerRepository;
+import com.example.demo.repositories.EmployeeRepository;
 import com.example.demo.repositories.TaskRepository;
+import com.example.demo.repositories.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
+
 
     private final TaskRepository repository;
 
@@ -28,31 +34,16 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task create(Task task) {
-        task.setCreatedAt(Instant.now());
-        task.setStatus("NEW");
-        return repository.save(task);
-    }
-
-    @Override
-    public Task assign(String taskId, Employee employee) {
-        Task task = findById(taskId);
-        task.setAssignedTo(employee.getId());
-        task.setStatus("ASSIGNED");
-        return repository.save(task);
-    }
-
-    @Override
-    public Task updateStatus(String taskId, UpdateTaskRequest request) {
-        Task task = findById(taskId);
-
-        // Only update fields that are present in the request
-        task.setStatus(request.status());
-        return repository.save(task);
-    }
-
-    @Override
     public void delete(String id) {
         repository.deleteById(id);
     }
+
+    @Override
+    public List<Task> getTasksByEmployeeId(String employeeId) {
+        return repository.findAll().stream()
+                .filter(task -> task.getEmployeesIDs() != null && !task.getEmployeesIDs().isEmpty())
+                .filter(task -> task.getEmployeesIDs().contains(employeeId))
+                .toList();
+    }
+
 }
