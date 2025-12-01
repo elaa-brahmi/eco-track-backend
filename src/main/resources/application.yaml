@@ -33,10 +33,15 @@ grok:
     key: ${GROK_API_KEY}
 osrm:
   url: http://localhost:5000
+
 logging:
   level:
-    org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor: TRACE
     org.springframework.web: DEBUG
-    com.fasterxml.jackson: DEBUG
+    org.springframework.security: DEBUG
 server:
   port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false

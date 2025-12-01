@@ -1,10 +1,9 @@
 package com.example.demo.utils;
 
+import com.example.demo.dto.RouteSolution;
 import com.example.demo.models.*;
-import com.example.demo.repositories.ContainerRepository;
-import com.example.demo.repositories.EmployeeRepository;
-import com.example.demo.repositories.TaskRepository;
-import com.example.demo.repositories.VehicleRepository;
+import com.example.demo.repositories.*;
+import com.example.demo.service.routing.RouteOptimizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,6 +26,9 @@ public class SensorSimulator {
     private final VehicleRepository vehicleRepo;
     private final TaskRepository taskRepo;
     private final SimpMessagingTemplate ws;
+    private final RouteOptimizationService optimizer;
+    private final RouteRepository routeRepo;
+
 
 
     @Scheduled(fixedRate = 60 * 60 * 1000)
@@ -41,7 +43,7 @@ public class SensorSimulator {
 
             c.setFillLevel(newFill);
             if (newFill >= 50) c.setStatus("half full");
-            if (newFill >= 90) c.setStatus("alert");
+            if (newFill >= 80) c.setStatus("alert");
             if (newFill == 100) c.setStatus("full");
 
             repo.save(c);
@@ -49,17 +51,31 @@ public class SensorSimulator {
         }
 
         // ---- FILTER CONTAINERS WITH FILL > 75 ----
-        List<Container> highFillContainers = containers.stream()
+
+        //if one of these containers is already assigned to a task having status pending  , skip it
+        List<Container> freeFullContainers = containers.stream()
                 .filter(container -> container.getFillLevel() > 75)
-                .sorted((a, b) -> Integer.compare(b.getFillLevel(), a.getFillLevel())) // highest fill first
+                .filter(container -> {
+                    // Is this container in any PENDING task?
+                    return taskRepo.findAll().stream()
+                            .noneMatch(task ->
+                                    task.getStatus() == TaskStatus.PENDING &&
+                                            task.getContainersIDs() != null &&
+                                            task.getContainersIDs().contains(container.getId())
+                            );
+                })
+                .sorted(Comparator.comparingInt(Container::getFillLevel).reversed()) // fullest first
                 .toList();
 
-        if (highFillContainers.size() < 4) {
-            System.out.println("Not enough high-fill containers to create a task (need at least 4).");
+        if (freeFullContainers.size() < 4) {
+            System.out.println("Only " + freeFullContainers.size() +
+                    " free full containers available (need 4). Skipping auto-task.");
             return;
         }
 
-        System.out.println("High fill containers: " + highFillContainers.size() + ", creating a new task automatically");
+
+
+
 
         // ---- ASSIGN EMPLOYEES ----
         List<String> assignedEmployees = new ArrayList<>();
@@ -90,10 +106,10 @@ public class SensorSimulator {
                 .get();
 
         List<Container> assignedContainers;
-        if (vehicle.getCapacity() >= highFillContainers.size()) {
-            assignedContainers = highFillContainers;
+        if (vehicle.getCapacity() >= freeFullContainers.size()) {
+            assignedContainers = freeFullContainers;
         } else {
-            assignedContainers = highFillContainers.subList(0, vehicle.getCapacity());
+            assignedContainers = freeFullContainers.subList(0, vehicle.getCapacity());
         }
 
         // ---- CREATE TASK ----
@@ -108,6 +124,18 @@ public class SensorSimulator {
         task.setVehiculeId(vehicle.getId());
 
         taskRepo.save(task);
+        //get the optimal route
+        RouteSolution solution = optimizer.optimizeRoute(assignedContainers, vehicle);
+
+        Route route = new Route();
+        route.setTaskId(task.getId());
+        route.setRouteOrder(solution.getContainerOrder());
+        route.setPolyline(solution.getEncodedPolyline());
+        route.setTotalDistanceKm(solution.getTotalDistanceKm());
+        route.setTotalDurationMin(solution.getTotalDurationMin());
+        route.setCalculatedAt(Instant.now());
+        routeRepo.save(route);
+
         messagingTemplate.convertAndSend("/topic/tasks", task);
 
         // ---- BLOCK AVAILABILITY ----

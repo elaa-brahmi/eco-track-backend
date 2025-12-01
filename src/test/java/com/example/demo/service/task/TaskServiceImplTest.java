@@ -1,8 +1,10 @@
 package com.example.demo.service.task;
 import com.example.demo.dto.ResolveReportRequest;
 import com.example.demo.dto.ResolveReportResponse;
+import com.example.demo.dto.RouteSolution;
 import com.example.demo.models.*;
 import com.example.demo.repositories.*;
+import com.example.demo.service.routing.RouteOptimizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +15,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.time.Instant;
 import java.util.*;
 
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +27,9 @@ class TaskServiceImplTest {
     @Mock private VehicleRepository vehicleRepo;
     @Mock private TaskRepository taskRepo;
     @Mock private SimpMessagingTemplate ws;
+    @Mock private RouteOptimizationService routeService;
+    @Mock private RouteRepository routeRepo;
+
 
     @InjectMocks
     private TaskAssignmentService service;
@@ -80,6 +86,14 @@ class TaskServiceImplTest {
         request.setStart(Instant.now());
         request.setEnd(Instant.now().plusSeconds(3600));
 
+        // Fake route solution
+        RouteSolution fakeSolution = RouteSolution.builder()
+                .containerOrder(List.of("c1"))
+                .encodedPolyline("fake_polyline_123")
+                .totalDistanceKm(1.8)
+                .totalDurationMin(7)
+                .build();
+
         // ---------- MOCK DATABASE CALLS ----------
         when(reportRepo.findById("r1")).thenReturn(Optional.of(report));
         when(containerRepo.findAll()).thenReturn(List.of(container));
@@ -89,11 +103,38 @@ class TaskServiceImplTest {
         when(vehicleRepo.findById("v1")).thenReturn(Optional.of(vehicle));
         when(taskRepo.save(any(Task.class))).thenReturn(savedTask);
         when(vehicleRepo.findAll()).thenReturn(List.of(vehicle));
+        when(routeService.optimizeRoute(List.of(container), vehicle)).thenReturn(fakeSolution);
         //when
         ResolveReportResponse response = service.resolveReport("r1", request);
         //then
         assertEquals("t1", response.getTaskId());
         assertEquals("task assigned", response.getMessage());
+        // Task saved correctly
+        ArgumentCaptor<Task> taskCaptor = ArgumentCaptor.forClass(Task.class);
+        verify(taskRepo).save(taskCaptor.capture());
+        Task createdTask = taskCaptor.getValue();
+        assertEquals("Clean bin", createdTask.getTitle());
+        assertEquals(TaskPriority.HIGH, createdTask.getPriority());
+        assertEquals(TaskStatus.PENDING, createdTask.getStatus());
+        assertEquals("r1", createdTask.getReportId());
+        assertThat(createdTask.getContainersIDs()).containsExactly("c1");
+        assertThat(createdTask.getEmployeesIDs()).containsExactly("e1");
+        assertEquals("v1", createdTask.getVehiculeId());
+
+        // Route saved
+        ArgumentCaptor<Route> routeCaptor = ArgumentCaptor.forClass(Route.class);
+        verify(routeRepo).save(routeCaptor.capture());
+        Route savedRoute = routeCaptor.getValue();
+        assertEquals("t1", savedRoute.getTaskId());
+        assertEquals("fake_polyline_123", savedRoute.getPolyline());
+        assertEquals(1.8, savedRoute.getTotalDistanceKm(), 0.01);
+
+        // Report updated
+        verify(reportRepo).save(report);
+        assertEquals(ReportStatus.Under_Review, report.getStatus());
+
+
+        //websocket
 
         verify(ws).convertAndSend(eq("/topic/tasks"), any(Task.class));
         verify(employeeRepo).save(any(Employee.class));
