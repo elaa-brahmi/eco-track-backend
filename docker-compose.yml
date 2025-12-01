@@ -43,7 +43,3 @@ services:
     volumes:
       - ./osm/data:/data
     command: osrm-routed --algorithm mld /data/tunisia-251126.osrm
-
-
-volumes:
-  keycloak-db:
