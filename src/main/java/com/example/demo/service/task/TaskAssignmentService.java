@@ -2,8 +2,10 @@ package com.example.demo.service.task;
 
 import com.example.demo.dto.ResolveReportRequest;
 import com.example.demo.dto.ResolveReportResponse;
+import com.example.demo.dto.RouteSolution;
 import com.example.demo.models.*;
 import com.example.demo.repositories.*;
+import com.example.demo.service.routing.RouteOptimizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,10 @@ public class TaskAssignmentService {
     private final VehicleRepository vehicleRepo;
     private final TaskRepository taskRepo;
     private final SimpMessagingTemplate ws;
+    private final RouteOptimizationService optimizer;
+    private final RouteRepository routeRepo;
+
+
 
 
     public ResolveReportResponse resolveReport(
@@ -41,8 +47,25 @@ public class TaskAssignmentService {
                         haversine(c.getLocation(), report.getLocation())))
                 .orElseThrow(() -> new RuntimeException("No container found"));
         System.out.println(container);
+        //if the container found belong to another task having status pending
+        // return don't create a new task at all
+        boolean isAssignedToPendingTask = taskRepo.findAll().stream()
+                .anyMatch(task ->
+                        task.getStatus() == TaskStatus.PENDING &&
+                                task.getContainersIDs() != null &&
+                                task.getContainersIDs().contains(container.getId())
+                );
 
-        //  Find required employees
+
+        if (isAssignedToPendingTask) {
+            System.out.println("Container " + container.getId() +
+                    " is already assigned to a PENDING task. Skipping new task creation.");
+            throw new RuntimeException("container is already assigned to a PENDING task. Skipping new task creation.");
+        }
+
+
+
+            //  Find required employees
         List<String> assignedEmployeeIds = assignEmployees(req, container);
 
         //  Find nearest available vehicle
@@ -63,8 +86,20 @@ public class TaskAssignmentService {
         }
         task.setEmployeesIDs(assignedEmployeeIds);
         task.setVehiculeId(vehicle.getId());
-
         task = taskRepo.save(task);
+        //build route
+        assert container != null;
+        RouteSolution solution = optimizer.optimizeRoute(List.of(container), vehicle);
+
+        Route route = Route.builder()
+                .taskId(task.getId())
+                .routeOrder(solution.getContainerOrder())
+                .polyline(solution.getEncodedPolyline())
+                .totalDistanceKm(solution.getTotalDistanceKm())
+                .totalDurationMin(solution.getTotalDurationMin())
+                .calculatedAt(Instant.now())
+                .build();
+        routeRepo.save(route);
         if(!assignedEmployeeIds.isEmpty()) {
             ws.convertAndSend("/topic/tasks", task);
         }
