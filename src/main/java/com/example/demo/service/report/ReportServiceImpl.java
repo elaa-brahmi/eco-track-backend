@@ -47,7 +47,6 @@ public class ReportServiceImpl implements ReportService {
                     .createdAt(Instant.now())
                     .status(ReportStatus.NEW)
                     .build();
-            // get the report instantly on the dashboard.
             repo.save(report);
             ws.convertAndSend("/topic/reports", report);
 
