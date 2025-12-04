@@ -29,7 +29,7 @@ public class KeycloakAdminService {
         cred.setType(CredentialRepresentation.PASSWORD);
         cred.setValue(password);
 
-        user.setCredentials(List.of(cred));       // ← NOW WORKS!
+        user.setCredentials(List.of(cred));
 
         Response response = keycloak.realm("springboot-test")
                 .users()

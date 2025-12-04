@@ -9,7 +9,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -23,6 +24,8 @@ import java.util.Map;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -32,7 +35,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // PUBLIC — NO TOKEN NEEDED
+                        // public endpoints
                         .requestMatchers("/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/reports").permitAll()
                         .requestMatchers("/api/route/**").permitAll()
@@ -41,19 +44,19 @@ public class SecurityConfig {
                         .requestMatchers("/topic/**").permitAll()
                         .requestMatchers("/raw-test").permitAll()
 
-                        // ADMIN ONLY
+                        // admin /employees (employees/vehicles/containers)
                         .requestMatchers("/api/employees/**").hasAnyRole("admin-role","employee-role")
-                        .requestMatchers("/api/vehicules/**").hasRole("admin-role")
-                        .requestMatchers("/api/containers/**").hasRole("admin-role")
+                        .requestMatchers("/api/vehicules/**").hasAnyRole("admin-role","employee-role")
+                        .requestMatchers("/api/containers/**").hasAnyRole("admin-role","employee-role")
 
-                        // TASKS
+                        // tasks
                         .requestMatchers("/api/tasks/**").hasAnyRole("admin-role","employee-role")
 
-
+                        // reports
                         .requestMatchers("/api/reports/**").hasAnyRole("admin-role")
 
 
-                        // EVERYTHING ELSE → requires login
+                        // everything else  → requires login
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
@@ -67,7 +70,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
@@ -79,10 +82,7 @@ public class SecurityConfig {
         return source;
     }
 
-    /**
-     * EXACTLY MATCHES YOUR KEYCLOAK TOKEN (realm_access.roles)
-     * Your roles: admin-role, employee-role, citizen-role → become ROLE_admin-role etc.
-     */
+
     //Role Extraction
     //Reads realm_access.roles → ["citizen-role", "offline_access", ...]
     //Converts to authorities: ["ROLE_citizen-role", "ROLE_offline_access", ...]
