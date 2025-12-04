@@ -1,4 +1,5 @@
 package com.example.demo.controller;
+import com.example.demo.models.Container;
 import com.example.demo.models.Vehicle;
 import com.example.demo.service.vehicule.VehicleService;
 import com.example.demo.service.vehicule.VehicleServiceImpl;
@@ -34,5 +35,11 @@ public class VehiculeController {
     public ResponseEntity<Void> deleteVehicle(@PathVariable String id) {
         vehicleService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/location/{id}")
+    public ResponseEntity<double []> getByLocationByVehicleId(@PathVariable String id) {
+        Vehicle vehicle = vehicleService.findById(id);
+        return ResponseEntity.ok().body(vehicle.getLocation());
     }
 }
