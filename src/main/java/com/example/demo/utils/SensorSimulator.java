@@ -35,7 +35,7 @@ public class SensorSimulator {
         System.out.println("Simulating");
         List<Container> containers = repo.findAll();
 
-        // ---- INCREMENT FILL LEVEL ----
+        // increment fill level
         for (Container c : containers) {
             int noise = new Random().nextInt(6);
             int newFill = Math.min(100, c.getFillLevel() + noise);
