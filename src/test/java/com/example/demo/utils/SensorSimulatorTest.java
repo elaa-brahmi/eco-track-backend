@@ -98,7 +98,7 @@ class SensorSimulatorTest {
         assertEquals("truck-01", task.getVehiculeId());
         assertThat(task.getContainersIDs()).containsExactlyInAnyOrder("c1", "c2", "c3", "c4");
 
-        // ASSERT: Route saved
+        // assert: Route saved
         ArgumentCaptor<Route> routeCaptor = ArgumentCaptor.forClass(Route.class);
         verify(routeRepo).save(routeCaptor.capture());
         Route route = routeCaptor.getValue();
