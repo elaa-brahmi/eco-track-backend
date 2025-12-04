@@ -47,14 +47,19 @@ public class RouteOptimizationService {
         List<double[]> orderedPointsForRouting = order.stream()
                 .map(allPoints::get)
                 .collect(Collectors.toList());
+        // ADD THE TRUCK AS START AND END (CLOSED LOOP)
+        List<double[]> closedRoute = new ArrayList<>();
+        closedRoute.add(truck.getLocation());                    // Start at truck
+        order.stream().skip(1).map(allPoints::get).forEach(closedRoute::add); // All containers
+        closedRoute.add(truck.getLocation());                    // Return to truck (optional)
 
-        OSRMRoutingService.RouteResult routeResult = osrm.getRouteForOrderedPoints(orderedPointsForRouting);
+        OSRMRoutingService.RouteResult routeResult = osrm.getRouteForOrderedPoints(closedRoute);
 
         // 4) return solution
         return new RouteSolution(orderedContainerIds, routeResult.distanceKm, routeResult.durationMin, routeResult.encodedPolyline);
     }
 
-    // --------- TSP heuristic: Nearest Neighbor + 2-opt ---------
+    // TSP heuristic: Nearest Neighbor + 2-opt
 
     private List<Integer> solveTspNearestNeighborPlus2Opt(double[][] matrix) {
         int n = matrix.length;
