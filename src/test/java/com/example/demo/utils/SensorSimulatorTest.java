@@ -44,7 +44,7 @@ class SensorSimulatorTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        simulator = new SensorSimulator(containerRepo, ws, containerRepo, employeeRepo, vehicleRepo, taskRepo, ws,optimizer,routeRepo);
+        simulator = new SensorSimulator(containerRepo,ws,  employeeRepo, vehicleRepo, taskRepo, optimizer,routeRepo);
     }
 
 

@@ -24,7 +24,6 @@ public class SensorSimulator {
     private final EmployeeRepository employeeRepo;
     private final VehicleRepository vehicleRepo;
     private final TaskRepository taskRepo;
-    private final SimpMessagingTemplate ws;
     private final RouteOptimizationService optimizer;
     private final RouteRepository routeRepo;
 
