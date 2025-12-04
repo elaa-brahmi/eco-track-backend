@@ -62,6 +62,8 @@ class RouteControllerTest {
                 "task-001",
                 "truck-01",
                 List.of("c1", "c2"),
+                List.of("c1", "c2"),
+
                 "abcd...",
                 12.5,
                 30.0,
@@ -73,6 +75,8 @@ class RouteControllerTest {
                 "task-002",
                 "truck-02",
                 List.of("c3", "c4"),
+                List.of("c3", "c4"),
+
                 "xyz...",
                 8.1,
                 19.0,
