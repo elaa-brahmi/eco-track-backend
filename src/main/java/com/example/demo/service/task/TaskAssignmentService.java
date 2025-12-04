@@ -93,6 +93,8 @@ public class TaskAssignmentService {
 
         Route route = Route.builder()
                 .taskId(task.getId())
+                .vehicleId(vehicle.getId())
+                .containersIds(List.of(container.getId()))
                 .routeOrder(solution.getContainerOrder())
                 .polyline(solution.getEncodedPolyline())
                 .totalDistanceKm(solution.getTotalDistanceKm())
@@ -206,7 +208,7 @@ public class TaskAssignmentService {
         Task task = taskRepo.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        // ---- RESET CONTAINERS ----
+        // reset containers
         if (task.getContainersIDs() != null) {
             task.getContainersIDs().forEach(id -> {
                 Container c = containerRepo.findById(id).orElse(null);
@@ -219,7 +221,7 @@ public class TaskAssignmentService {
             });
         }
 
-        // ---- FREE EMPLOYEES ----
+        // free employees
         if (task.getEmployeesIDs() != null) {
             task.getEmployeesIDs().forEach(empId -> {
                 employeeRepo.findById(empId).ifPresent(emp -> {
@@ -239,7 +241,7 @@ public class TaskAssignmentService {
             });
         }
 
-        // ---- FREE VEHICLE ----
+        // free vehicle
         if (task.getVehiculeId() != null) {
             vehicleRepo.findById(task.getVehiculeId()).ifPresent(vehicle -> {
                 vehicle.setAvailable(true);
@@ -256,11 +258,11 @@ public class TaskAssignmentService {
             });
         }
 
-        // ---- UPDATE TASK STATUS ----
+        // update task status
         task.setStatus(TaskStatus.COMPLETED);
         taskRepo.save(task);
 
-        // ---- UPDATE REPORT STATUS IF EXISTS ----
+        // update report status if it exists
         if (task.getReportId() != null) {
             reportRepo.findById(task.getReportId()).ifPresent(report -> {
                 report.setStatus(ReportStatus.RESOLVED);

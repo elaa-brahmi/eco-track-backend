@@ -21,7 +21,6 @@ public class SensorSimulator {
 
     private final ContainerRepository repo;
     private final SimpMessagingTemplate messagingTemplate;
-    private final ContainerRepository containerRepo;
     private final EmployeeRepository employeeRepo;
     private final VehicleRepository vehicleRepo;
     private final TaskRepository taskRepo;
@@ -50,7 +49,7 @@ public class SensorSimulator {
             messagingTemplate.convertAndSend("/topic/containers", c);
         }
 
-        // ---- FILTER CONTAINERS WITH FILL > 75 ----
+        //  filter containers with  fill > 75
 
         //if one of these containers is already assigned to a task having status pending  , skip it
         List<Container> freeFullContainers = containers.stream()
@@ -77,7 +76,7 @@ public class SensorSimulator {
 
 
 
-        // ---- ASSIGN EMPLOYEES ----
+        // assign employees
         List<String> assignedEmployees = new ArrayList<>();
         assignedEmployees.addAll(employeeRepo.findByRoleAndAvailableTrue(Role.loader_role).stream()
                 .limit(1)
@@ -94,7 +93,7 @@ public class SensorSimulator {
             return;
         }
 
-        // ---- ASSIGN VEHICLE ----
+        // assign vehicule
         List<Vehicle> availableVehicles = vehicleRepo.findByAvailableTrue();
         if (availableVehicles.isEmpty()) {
             System.err.println("No available vehicles for task");
@@ -112,7 +111,7 @@ public class SensorSimulator {
             assignedContainers = freeFullContainers.subList(0, vehicle.getCapacity());
         }
 
-        // ---- CREATE TASK ----
+        // create task
         Task task = new Task();
         task.setTitle("Auto collection");
         task.setPriority(TaskPriority.MEDIUM);
@@ -124,11 +123,17 @@ public class SensorSimulator {
         task.setVehiculeId(vehicle.getId());
 
         taskRepo.save(task);
+
         //get the optimal route
+
         RouteSolution solution = optimizer.optimizeRoute(assignedContainers, vehicle);
+
+        // create route
 
         Route route = new Route();
         route.setTaskId(task.getId());
+        route.setVehicleId(vehicle.getId());
+        route.setContainersIds(assignedContainers.stream().map(Container::getId).toList());
         route.setRouteOrder(solution.getContainerOrder());
         route.setPolyline(solution.getEncodedPolyline());
         route.setTotalDistanceKm(solution.getTotalDistanceKm());
@@ -138,7 +143,7 @@ public class SensorSimulator {
 
         messagingTemplate.convertAndSend("/topic/tasks", task);
 
-        // ---- BLOCK AVAILABILITY ----
+        //  block  availability
         Instant start = Instant.now();
         Instant end = Instant.now().plusSeconds(30 * 60);
         blockAvailability(assignedEmployees, vehicle.getId(), task.getId(), start, end);
