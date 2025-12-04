@@ -40,4 +40,9 @@ public class ContainerController {
     public void delete(@PathVariable String id) {
         containerService.delete(id);
     }
+    @GetMapping("/location/{id}")
+    public ResponseEntity<double []> getByLocationByContainerId(@PathVariable String id) {
+        Container container = containerService.findById(id);
+        return ResponseEntity.ok().body(container.getLocation());
+    }
 }
