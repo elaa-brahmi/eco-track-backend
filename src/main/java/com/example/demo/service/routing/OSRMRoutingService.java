@@ -52,7 +52,7 @@ public class OSRMRoutingService {
                 .collect(Collectors.joining(";"));
 
         // request steps + overview polyline + annotations
-        String url = String.format("%s/route/v1/driving/%s?overview=full&geometries=polyline&steps=false", osrmBase, coords);
+        String url = String.format("%s/route/v1/driving/%s?overview=full&geometries=polyline&steps=true&annotations=true", osrmBase, coords);
         Map<?,?> resp = rest.getForObject(url, Map.class);
 
         List<Map<String,Object>> routes = (List<Map<String,Object>>) resp.get("routes");
