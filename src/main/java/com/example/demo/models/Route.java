@@ -16,6 +16,8 @@ public class Route {
     @Id
     private String id;
     private String taskId;
+    private List<String> containersIds;
+    private String vehicleId;
     private List<String> routeOrder; // ["c8", "c3", "c12"]
     private String polyline; // encoded polyline
     private double totalDistanceKm;
