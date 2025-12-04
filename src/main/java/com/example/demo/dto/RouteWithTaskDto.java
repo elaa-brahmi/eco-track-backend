@@ -18,6 +18,7 @@ public class RouteWithTaskDto {
     private String routeId;
     private String taskId;
     private String vehicleId;
+    private List<String> containersIds;
     private List<String> containerOrder;
     private String polyline;
     private double totalDistanceKm;

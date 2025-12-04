@@ -36,7 +36,7 @@ public class RouteService {
         //  Find all routes for these tasks
         List<Route> routes = routeRepo.findByTaskIdIn(taskIds);
 
-        //  Combine Route + Task data into beautiful DTO
+        //  Combine Route + Task data
         return routes.stream()
                 .map(route -> {
                     Task task = tasks.stream()
@@ -47,7 +47,8 @@ public class RouteService {
                     return new RouteWithTaskDto(
                             route.getId(),
                             route.getTaskId(),
-                            task.getVehiculeId(),
+                            route.getVehicleId(),
+                            route.getContainersIds(),
                             route.getRouteOrder(),
                             route.getPolyline(),
                             route.getTotalDistanceKm(),
