@@ -58,7 +58,27 @@ jobs:
           path: target/site/jacoco/
 
       # ─────────────────────────────────────────────────────
-      # 3. Docker Image Build & Push to GHCR
+      # 3. Docker Image Build & Local Scan
+      # ─────────────────────────────────────────────────────
+      - name: Build Docker image locally
+        run: docker build -t ecotrack-backend:${{ github.sha }} .
+
+      - name: Scan image locally with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ecotrack-backend:${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy scan results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      # ─────────────────────────────────────────────────────
+      # 4. Docker Image Build & Push to GHCR
       # ─────────────────────────────────────────────────────
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -81,18 +101,17 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
 
-      - name: Build and push Docker image
+      - name: Push Docker image to GHCR
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+
 
       # ─────────────────────────────────────────────────────
-      # 4. Security Scan with Trivy (Critical CVEs → Fail)
+      # 5. Security Scan with Trivy (Critical CVEs → Fail)
       # ─────────────────────────────────────────────────────
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -109,7 +128,7 @@ jobs:
           sarif_file: trivy-results.sarif
 
       # ─────────────────────────────────────────────────────
-      # 5. Deploy to Local Kind Cluster (only on main)
+      # 6. Deploy to Local Kind Cluster (only on main)
       # ─────────────────────────────────────────────────────
       - name: Setup Kind Cluster (only main branch)
         if: github.ref == 'refs/heads/main'
@@ -126,7 +145,7 @@ jobs:
 
 
       # ─────────────────────────────────────────────────────
-      # 6. Smoke Test (optional but elite)
+      # 7. Smoke Test (optional but elite)
       # ─────────────────────────────────────────────────────
       - name: Smoke Test API
         if: github.ref == 'refs/heads/main'
@@ -138,7 +157,7 @@ jobs:
           echo "API is healthy!"
 
       # ─────────────────────────────────────────────────────
-      # 7. Notify (optional — Slack, Discord, etc.)
+      # 8. Notify (optional — Slack, Discord, etc.)
       # ─────────────────────────────────────────────────────
       - name: Notify Success
         if: success()
