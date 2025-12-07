@@ -1,0 +1,67 @@
+# backend.yaml — COMMIT THIS VERSION (NO SECRETS!)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecotrack-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ecotrack
+  template:
+    metadata:
+      labels:
+        app: ecotrack
+    spec:
+      containers:
+        - name: backend
+          image: ecotrack-backend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: MONGO_URI
+            - name: OSRM_URL
+              value: http://osrm:5000
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SUPABASE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: SUPABASE_SECRET
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: SUPABASE_URL
+            - name: ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: ADMIN_SECRET
+            - name: ADMIN_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: ADMIN_ID
+            - name: GROK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: GROK_API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecotrack-backend
+spec:
+  selector:
+    app: ecotrack
+  ports:
+    - port: 8080
+      targetPort: 8080

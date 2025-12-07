@@ -99,4 +99,26 @@ class ContainerControllerTest {
 
         verify(containerService).delete("777");
     }
+    @Test
+    void getLocationByContainerId() throws Exception {
+        double[] location = {10, 20};
+
+        Container c1 = Container.builder()
+                .id("1")
+                .type("plastic")
+                .location(location)
+                .build();
+
+        when(containerService.findById("1")).thenReturn(c1);
+
+        mockMvc.perform(MockMvcRequestBuilders.get(BASE_URL + "/location/{id}", "1")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value(10.0))
+                .andExpect(jsonPath("$[1]").value(20.0));
+
+        verify(containerService).findById("1");
+
+    }
 }

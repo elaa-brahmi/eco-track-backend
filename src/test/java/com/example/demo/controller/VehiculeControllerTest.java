@@ -157,4 +157,28 @@ class VehiculeControllerTest {
 
         verify(vehicleService, times(1)).delete("veh-999");
     }
+    @Test
+    void getLocationByVehicleId() throws Exception {
+
+        double[] location = {10.185, 36.810};
+
+        Vehicle vehicle = Vehicle.builder()
+                .id("veh-123")
+                .name("Camion Test")
+                .location(location)
+                .capacity(5)
+                .build();
+
+        when(vehicleService.findById("veh-123")).thenReturn(vehicle);
+
+        mockMvc.perform(get(BASE_URL + "/location/{id}", "veh-123")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin-role"))))
+
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value(10.185))
+                .andExpect(jsonPath("$[1]").value(36.810));
+
+        verify(vehicleService).findById("veh-123");
+    }
+
 }
