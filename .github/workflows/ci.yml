@@ -123,6 +123,11 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
           kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s || true
 
+      - name: Build OSRM Docker image locally
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker build -t osrm-tunisia:v2 -f Dockerfile.osrm .
+
       - name: Load local Docker image into Kind
         if: github.ref == 'refs/heads/main'
         run: |
