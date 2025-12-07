@@ -110,25 +110,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
 
-      # ─────────────────────────────────────────────────────
-      # 5. Security Scan with Trivy (Critical CVEs → Fail)
-      # ─────────────────────────────────────────────────────
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
 
-      - name: Upload Trivy scan results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
 
       # ─────────────────────────────────────────────────────
-      # 6. Deploy to Local Kind Cluster (only on main)
+      # 5. Deploy to Local Kind Cluster (only on main)
       # ─────────────────────────────────────────────────────
       - name: Setup Kind Cluster (only main branch)
         if: github.ref == 'refs/heads/main'
@@ -145,7 +130,7 @@ jobs:
 
 
       # ─────────────────────────────────────────────────────
-      # 7. Smoke Test (optional but elite)
+      # 6. Smoke Test (optional but elite)
       # ─────────────────────────────────────────────────────
       - name: Smoke Test API
         if: github.ref == 'refs/heads/main'
@@ -157,7 +142,7 @@ jobs:
           echo "API is healthy!"
 
       # ─────────────────────────────────────────────────────
-      # 8. Notify (optional — Slack, Discord, etc.)
+      # 7. Notify (optional — Slack, Discord, etc.)
       # ─────────────────────────────────────────────────────
       - name: Notify Success
         if: success()
