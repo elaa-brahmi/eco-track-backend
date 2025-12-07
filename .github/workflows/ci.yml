@@ -123,10 +123,10 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
           kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s || true
 
-      - name: Load image into Kind
+      - name: Load local Docker image into Kind
         if: github.ref == 'refs/heads/main'
         run: |
-          kind load docker-image ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} --name ${{ env.KIND_CLUSTER_NAME }}
+          kind load docker-image ecotrack-backend:${{ github.sha }} --name ${{ env.KIND_CLUSTER_NAME }}
 
 
       # ─────────────────────────────────────────────────────
