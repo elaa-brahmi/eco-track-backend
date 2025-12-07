@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osrm
+spec:
+  replicas: {{ .Values.osrm.replicaCount }}
+  selector:
+    matchLabels:
+      app: osrm
+  template:
+    metadata:
+      labels:
+        app: osrm
+    spec:
+      containers:
+        - name: osrm
+          image: "{{ .Values.osrm.image.repository }}:{{ .Values.osrm.image.tag }}"
+          imagePullPolicy: {{ .Values.osrm.image.pullPolicy }}
+          ports:
+            - containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /route/v1/driving/10.76,34.74;10.77,34.73
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10

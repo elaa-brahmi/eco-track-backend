@@ -1,0 +1,8 @@
+# Paste this into Dockerfile.osrm:
+FROM osrm/osrm-backend:latest
+
+# Copy your Tunisia map files into the image
+COPY osm/data/tunisia-251126.osrm* /data/
+
+# Start OSRM cleanly
+CMD ["osrm-routed", "--algorithm", "mld", "/data/tunisia-251126.osrm"]

@@ -1,0 +1,25 @@
+backend:
+  replicaCount: 2
+  image:
+    repository: "ecotrack-backend"
+    tag: "latest"
+    pullPolicy: Never
+
+  service:
+    port: 8080
+
+  env:
+    OSRM_URL: "http://osrm:5000"
+    SPRING_PROFILES_ACTIVE: "prod"
+
+  secretName: ecotrack-secrets
+
+osrm:
+  replicaCount: 1
+  image:
+    repository: "osrm-tunisia"
+    tag: "v2"
+    pullPolicy: Never
+
+  service:
+    port: 5000

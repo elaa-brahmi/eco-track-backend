@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecotrack-backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: ecotrack-backend
+  template:
+    metadata:
+      labels:
+        app: ecotrack-backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.secretName }}
+                  key: MONGO_URI
+
+            - name: OSRM_URL
+              value: "{{ .Values.backend.env.OSRM_URL }}"
+
+            - name: SPRING_PROFILES_ACTIVE
+              value: "{{ .Values.backend.env.SPRING_PROFILES_ACTIVE }}"
+
+            - name: SUPABASE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.secretName }}
+                  key: SUPABASE_SECRET
+
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.secretName }}
+                  key: SUPABASE_URL
+
+            - name: ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.secretName }}
+                  key: ADMIN_SECRET
+
+            - name: ADMIN_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.secretName }}
+                  key: ADMIN_ID
+
+            - name: GROK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.secretName }}
+                  key: GROK_API_KEY
