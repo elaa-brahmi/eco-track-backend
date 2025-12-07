@@ -24,7 +24,7 @@ jobs:
     steps:
       # ─────────────────────────────────────────────────────
       # 1. Checkout + Setup
-      # ─────────────────────────────────────────────────────
+      # ────────────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -127,6 +127,12 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           kind load docker-image ecotrack-backend:${{ github.sha }} --name ${{ env.KIND_CLUSTER_NAME }}
+          kind load docker-image osrm-tunisia:v2 --name ${{ env.KIND_CLUSTER_NAME }}
+      - name: Deploy backend & OSRM manifests
+        if: github.ref == 'refs/heads/main'
+        run: |
+          kubectl apply -f k8s/backend.yaml
+          kubectl apply -f k8s/osrm.yaml
 
 
       # ─────────────────────────────────────────────────────
