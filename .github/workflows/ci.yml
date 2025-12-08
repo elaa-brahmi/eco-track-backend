@@ -22,9 +22,10 @@ jobs:
       KIND_CLUSTER_NAME: ecotrack
 
     steps:
-      # ─────────────────────────────────────────────────────
+
       # 1. Checkout + Setup
-      # ────────────────────────────────────────────────────
+
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -37,9 +38,9 @@ jobs:
           java-version: '17'
           cache: maven
 
-      # ─────────────────────────────────────────────────────
+
       # 2. Build & Test (with JaCoCo + Surefire)
-      # ─────────────────────────────────────────────────────
+
       - name: Build & Test
         run: mvn -B -ntp clean verify
 
@@ -57,9 +58,8 @@ jobs:
           name: jacoco-coverage
           path: target/site/jacoco/
 
-      # ─────────────────────────────────────────────────────
       # 3. Docker Image Build & Local Scan
-      # ─────────────────────────────────────────────────────
+
       - name: Build Docker image locally
         run: docker build -t ecotrack-backend:${{ github.sha }} .
 
@@ -77,9 +77,9 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
 
-      # ─────────────────────────────────────────────────────
+
       # 4. Docker Image Build & Push to GHCR
-      # ─────────────────────────────────────────────────────
+
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -113,9 +113,8 @@ jobs:
 
 
 
-      # ─────────────────────────────────────────────────────
       # 5. Deploy to Local Kind Cluster (only on main)
-      # ─────────────────────────────────────────────────────
+
       - name: Setup Kind Cluster (only main branch)
         if: github.ref == 'refs/heads/main'
         run: |
@@ -141,9 +140,9 @@ jobs:
           kubectl apply -f k8s/osrm.yaml
 
 
-      # ─────────────────────────────────────────────────────
+
       # 6. Smoke Test (optional but elite)
-      # ─────────────────────────────────────────────────────
+
       - name: Smoke Test API
         if: github.ref == 'refs/heads/main'
         run: |
@@ -153,9 +152,9 @@ jobs:
           curl -f http://localhost:8080/actuator/health || exit 1
           echo "API is healthy!"
 
-      # ─────────────────────────────────────────────────────
+
       # 7. Notify (optional — Slack, Discord, etc.)
-      # ─────────────────────────────────────────────────────
+
       - name: Notify Success
         if: success()
         run: echo "DEPLOYED SUCCESSFULLY TO KUBERNETES"
