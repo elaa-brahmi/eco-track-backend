@@ -1,4 +1,3 @@
-# backend.yaml — COMMIT THIS VERSION (NO SECRETS!)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,7 +15,7 @@ spec:
       containers:
         - name: backend
           image: ecotrack-backend:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:

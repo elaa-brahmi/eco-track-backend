@@ -1,4 +1,4 @@
-name: CI/CD — Build → Test → Scan → Push → Deploy (Separated Jobs)
+name: CI/CD — Build → Test → Scan → Push → Deploy
 
 on:
   push:
@@ -11,9 +11,7 @@ permissions:
   packages: write
   security-events: write
 
-# ──────────────────────────────────────────────────────────────
 # 1. Build & Test (runs on every push/PR)
-# ──────────────────────────────────────────────────────────────
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -49,9 +47,8 @@ jobs:
           path: target/site/jacoco/
 
 
-  # ──────────────────────────────────────────────────────────────
   # 2. Build & Push Docker Image (only if tests pass)
-  # ──────────────────────────────────────────────────────────────
+
   build-and-push:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -91,9 +88,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
 
 
-  # ──────────────────────────────────────────────────────────────
   # 3. Security Scan (parallel, independent)
-  # ──────────────────────────────────────────────────────────────
   security-scan:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -120,9 +115,9 @@ jobs:
           sarif_file: trivy-results.sarif
 
 
-  # ──────────────────────────────────────────────────────────────
+
   # 4. Deploy to Kind (only on main, after everything passes)
-  # ──────────────────────────────────────────────────────────────
+
   deploy-to-kind:
     needs: [build-and-push, security-scan]
     runs-on: ubuntu-latest
@@ -159,12 +154,12 @@ jobs:
       - name: Deploy manifests
         run: |
           kubectl apply -f backend.yaml
-          kubectl apply -f osrm.yaml   # ← your updated osrm.yaml with peter-evans image
+          kubectl apply -f osrm.yaml   
 
       - name: Smoke Test (Backend + OSRM)
         run: |
           kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
-          kubectl wait --for=condition=available deployment/osrm --timeout=12m || true   # OSRM needs time on first run
+          kubectl wait --for=condition=available deployment/osrm --timeout=12m || true  
           kubectl port-forward svc/ecotrack-backend 8080:8080 &
           kubectl port-forward svc/osrm 5001:5000 &
           sleep 40
