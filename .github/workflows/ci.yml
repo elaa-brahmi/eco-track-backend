@@ -56,7 +56,7 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     name: Build & Push Image
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || || github.ref == 'refs/heads/peterEvans-osrm'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/peterEvans-osrm'
     env:
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ecotrack-backend
 
