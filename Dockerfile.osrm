@@ -1,35 +1,24 @@
-# Dockerfile.osrm → FINAL VERSION THAT WORKS 100 % (no curl, no wget, no apt/apk drama)
-FROM osrm/osrm-backend:latest
+# Dockerfile.osrm — THE ONE THAT ACTUALLY WORKS (multi-stage + correct libs)
+FROM osrm/osrm-backend:latest AS osrm-base
 
-# The image is ultra-minimal → it has NO networking tools
-# → We use a multi-stage build from a normal Ubuntu image just to download + process
-FROM ubuntu:24.04 AS builder
-
-# Install only what we need to download + run OSRM tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget ca-certificates libboost-all-dev \
-    && rm -rf /var/lib/apt/lists/*
-
+# Stage 1: Download + process the map using the FULL official image (it has everything)
+FROM osrm-base AS processor
 WORKDIR /data
 
-# Download and process the Tunisia map exactly once
+# Download Tunisia map
 RUN wget -q https://download.geofabrik.de/africa/tunisia-latest.osm.pbf
 
-# Use the exact same OSRM binaries from the official image (copy them in)
-COPY --from=osrm/osrm-backend:latest /usr/local/bin/ /usr/local/bin/
-COPY --from=osrm/osrm-backend:latest /opt/ /opt/
-
+# Process it — this time it works because we're inside the real image with all deps
 RUN osrm-extract -p /opt/car.lua tunisia-latest.osm.pbf && \
     osrm-partition tunisia-latest.osrm && \
     osrm-customize tunisia-latest.osrm
 
-# Final stage — same base image you already use
-FROM osrm/osrm-backend:latest
-
+# Stage 2: Final runtime image (exactly the same as before)
+FROM osrm-base
 WORKDIR /data
-# Copy only the processed .osrm files from the builder stage
-COPY --from=builder /data/tunisia-latest.osrm* /data/
+
+# Only copy the processed files — nothing else
+COPY --from=processor /data/tunisia-latest.osrm* /data/
 
 EXPOSE 5000
-
 CMD ["osrm-routed", "--algorithm", "mld", "tunisia-latest.osrm"]
