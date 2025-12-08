@@ -1,8 +1,12 @@
-# Paste this into Dockerfile.osrm:
 FROM osrm/osrm-backend:latest
 
-# Copy your Tunisia map files into the image
-COPY osm/data/tunisia-251126.osrm* /data/
+WORKDIR /data
 
-# Start OSRM cleanly
-CMD ["osrm-routed", "--algorithm", "mld", "/data/tunisia-251126.osrm"]
+# Download & process Tunisia map (cached by Docker)
+RUN wget -q https://download.geofabrik.de/africa/tunisia-latest.osm.pbf && \
+    osrm-extract -p /opt/car.lua tunisia-latest.osm.pbf && \
+    osrm-partition tunisia-latest.osrm && \
+    osrm-customize tunisia-latest.osrm
+
+EXPOSE 5000
+CMD ["osrm-routed", "--algorithm", "mld", "tunisia-latest.osrm"]
