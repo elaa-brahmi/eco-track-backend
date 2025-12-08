@@ -15,7 +15,7 @@ spec:
       containers:
         - name: osrm
           image: peter-evans/osrm-backend-docker:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Never
           env:
             - name: OSRM_PBF_URL
               value: "https://download.geofabrik.de/africa/tunisia-latest.osm.pbf"
