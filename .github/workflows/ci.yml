@@ -158,8 +158,8 @@ jobs:
 
       - name: Deploy manifests
         run: |
-          kubectl apply -f k8s/backend.yaml
-          kubectl apply -f k8s/osrm.yaml   # ← your updated osrm.yaml with peter-evans image
+          kubectl apply -f backend.yaml
+          kubectl apply -f osrm.yaml   # ← your updated osrm.yaml with peter-evans image
 
       - name: Smoke Test (Backend + OSRM)
         run: |
