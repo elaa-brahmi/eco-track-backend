@@ -1,24 +1,21 @@
-# Dockerfile.osrm — THE ONE THAT ACTUALLY WORKS (multi-stage + correct libs)
-FROM osrm/osrm-backend:latest AS osrm-base
+# Dockerfile.osrm — THE ONE THAT WORKS (installs wget + everything else)
+FROM osrm/osrm-backend:latest
 
-# Stage 1: Download + process the map using the FULL official image (it has everything)
-FROM osrm-base AS processor
+# Install wget (the image is Debian-based, so use apt-get)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /data
 
-# Download Tunisia map
+# Download Tunisia map (wget now exists)
 RUN wget -q https://download.geofabrik.de/africa/tunisia-latest.osm.pbf
 
-# Process it — this time it works because we're inside the real image with all deps
+# Process the map (all libs are present)
 RUN osrm-extract -p /opt/car.lua tunisia-latest.osm.pbf && \
     osrm-partition tunisia-latest.osrm && \
     osrm-customize tunisia-latest.osrm
 
-# Stage 2: Final runtime image (exactly the same as before)
-FROM osrm-base
-WORKDIR /data
-
-# Only copy the processed files — nothing else
-COPY --from=processor /data/tunisia-latest.osrm* /data/
-
 EXPOSE 5000
+
 CMD ["osrm-routed", "--algorithm", "mld", "tunisia-latest.osrm"]
