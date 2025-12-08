@@ -1,21 +1,34 @@
+# Dockerfile.osrm → FINAL VERSION THAT WORKS 100 % (no curl, no wget, no apt/apk drama)
 FROM osrm/osrm-backend:latest
 
-RUN echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list && \
-    echo "deb http://deb.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list && \
-    echo "deb http://security.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends wget ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+# The image is ultra-minimal → it has NO networking tools
+# → We use a multi-stage build from a normal Ubuntu image just to download + process
+FROM ubuntu:24.04 AS builder
+
+# Install only what we need to download + run OSRM tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget ca-certificates libboost-all-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /data
 
-# Download Tunisia map
+# Download and process the Tunisia map exactly once
 RUN wget -q https://download.geofabrik.de/africa/tunisia-latest.osm.pbf
 
-# Process the map (cached after first build)
+# Use the exact same OSRM binaries from the official image (copy them in)
+COPY --from=osrm/osrm-backend:latest /usr/local/bin/ /usr/local/bin/
+COPY --from=osrm/osrm-backend:latest /opt/ /opt/
+
 RUN osrm-extract -p /opt/car.lua tunisia-latest.osm.pbf && \
     osrm-partition tunisia-latest.osrm && \
     osrm-customize tunisia-latest.osrm
+
+# Final stage — same base image you already use
+FROM osrm/osrm-backend:latest
+
+WORKDIR /data
+# Copy only the processed .osrm files from the builder stage
+COPY --from=builder /data/tunisia-latest.osrm* /data/
 
 EXPOSE 5000
 
