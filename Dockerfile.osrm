@@ -1,17 +1,18 @@
-# Dockerfile.osrm — FINAL VERSION THAT WORKS TODAY (Dec 2025)
 FROM osrm/osrm-backend:latest
 
-# Debian-based image → use apt-get
-RUN apt-get update && \
+RUN echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list && \
+    echo "deb http://security.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list && \
+    apt-get update && \
     apt-get install -y --no-install-recommends wget ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /data
 
-# Download the latest Tunisia map from Geofabrik
+# Download Tunisia map
 RUN wget -q https://download.geofabrik.de/africa/tunisia-latest.osm.pbf
 
-# Process it once at build time (cached forever after first build)
+# Process the map (cached after first build)
 RUN osrm-extract -p /opt/car.lua tunisia-latest.osm.pbf && \
     osrm-partition tunisia-latest.osrm && \
     osrm-customize tunisia-latest.osrm
