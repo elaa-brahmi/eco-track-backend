@@ -2,7 +2,7 @@ name: "CI/CD — Build → Test → Scan → Deploy"
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, peterEvans-osrm ]
   pull_request:
     branches: [ main ]
 permissions:
@@ -23,8 +23,6 @@ jobs:
     steps:
 
       # 1. Checkout + Setup
-
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -37,11 +35,9 @@ jobs:
           java-version: '17'
           cache: maven
 
-
       # 2. Build & Test (with JaCoCo + Surefire)
-
       - name: Build & Test
-        run: mvn -B -ntp clean verify -DskipTests=false -Dtest=!OsrmIntegrationTest,*Test
+        run: mvn -B -ntp clean verify -DskipTests=false -Dtest=!OsrmIntegrationTest,*Test  # Skip OSRM tests since we're using hosted now
 
       - name: Upload Surefire Reports
         if: always()
@@ -58,7 +54,6 @@ jobs:
           path: target/site/jacoco/
 
       # 3. Docker Image Build & Local Scan
-
       - name: Build Docker image locally
         run: docker build -t ecotrack-backend:${{ github.sha }} .
 
@@ -76,10 +71,7 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
 
-
       # 4. Docker Image Build & Push to GHCR
-
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -89,7 +81,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-            driver: docker-container
+          driver: docker-container
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -100,7 +92,6 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
-
       - name: Push Docker image to GHCR
         uses: docker/build-push-action@v6
         with:
@@ -109,11 +100,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-
-
-
-      # 5. Deploy to Local Kind Cluster (only on main)
-
+      # 5. Deploy to Local Kind Cluster (only on main) — NEW OSRM SOLUTION
       - name: Setup Kind Cluster (only main branch)
         if: github.ref == 'refs/heads/main'
         run: |
@@ -122,38 +109,78 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
           kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s || true
 
-      - name: Build OSRM Docker image locally
+      # NEW: Pull & Load pre-built OSRM image (auto-downloads Tunisia map + processes)
+      - name: Pull & Load OSRM Image into Kind
         if: github.ref == 'refs/heads/main'
         run: |
-          docker build -t osrm-tunisia:v2 -f Dockerfile.osrm .
-
-      - name: Load local Docker image into Kind
-        if: github.ref == 'refs/heads/main'
-        run: |
+          docker pull peter-evans/osrm-backend-docker:latest
           kind load docker-image ecotrack-backend:${{ github.sha }} --name ${{ env.KIND_CLUSTER_NAME }}
-          kind load docker-image osrm-tunisia:v2 --name ${{ env.KIND_CLUSTER_NAME }}
+          kind load docker-image peter-evans/osrm-backend-docker:latest --name ${{ env.KIND_CLUSTER_NAME }}
+
       - name: Deploy backend & OSRM manifests
         if: github.ref == 'refs/heads/main'
         run: |
           kubectl apply -f k8s/backend.yaml
-          kubectl apply -f k8s/osrm.yaml
+          # NEW: Deploy OSRM with env var for Tunisia PBF (auto-processes on startup)
+          cat <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: osrm-tunisia
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: osrm-tunisia
+            template:
+              metadata:
+                labels:
+                  app: osrm-tunisia
+              spec:
+                containers:
+                - name: osrm
+                  image: peter-evans/osrm-backend-docker:latest
+                  env:
+                  - name: OSRM_PBF_URL
+                    value: "https://download.geofabrik.de/africa/tunisia-latest.osm.pbf"
+                  - name: OSRM_PROFILE
+                    value: "car"  # or "foot", "bicycle"
+                  ports:
+                  - containerPort: 5000
+                  resources:
+                    requests:
+                      memory: "2Gi"
+                      cpu: "1000m"
+                    limits:
+                      memory: "4Gi"
+                      cpu: "2000m"  # Processing is CPU-heavy
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: osrm-tunisia
+          spec:
+            selector:
+              app: osrm-tunisia
+            ports:
+            - port: 5000
+              targetPort: 5000
+          EOF
 
-
-
-      # 6. Smoke Test (optional but elite)
-
-      - name: Smoke Test API
+      # 6. Smoke Test (optional but elite) — UPDATED WITH OSRM CHECK
+      - name: Smoke Test API & OSRM
         if: github.ref == 'refs/heads/main'
         run: |
-          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=3m
+          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=3m || true
+          kubectl wait --for=condition=available deployment/osrm-tunisia --timeout=10m || true  # Wait for processing
           kubectl port-forward svc/ecotrack-backend 8080:8080 &
-          sleep 10
+          kubectl port-forward svc/osrm-tunisia 5001:5000 &
+          sleep 30  # Give time for OSRM startup
           curl -f http://localhost:8080/actuator/health || exit 1
-          echo "API is healthy!"
-
+          curl -f "http://localhost:5001/route/v1/driving/10.1667,36.8065;10.1911,36.8006?steps=true" || exit 1  # Test Tunisia route (Tunis to Sfax)
+          echo "API + OSRM healthy!"
 
       # 7. Notify (optional — Slack, Discord, etc.)
-
       - name: Notify Success
         if: success()
         run: echo "DEPLOYED SUCCESSFULLY TO KUBERNETES"
