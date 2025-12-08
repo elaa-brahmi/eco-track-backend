@@ -2,7 +2,7 @@ name: CI/CD — Build → Test → Scan → Push → Deploy (Separated Jobs)
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop,peterEvans-osrm ]
   pull_request:
     branches: [ main ]
 
