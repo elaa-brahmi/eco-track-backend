@@ -152,9 +152,9 @@ jobs:
       - name: Load images into Kind
         run: |
           docker pull ghcr.io/${{ github.repository_owner }}/ecotrack-backend:latest
-          docker pull peter-evans/osrm-backend-docker:latest
+          docker pull peterevans/osrm-backend:latest
           kind load docker-image ghcr.io/${{ github.repository_owner }}/ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
-          kind load docker-image peter-evans/osrm-backend-docker:latest --name ${{ env.KIND_CLUSTER_NAME }}
+          kind load docker-image peterevans/osrm-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
 
       - name: Deploy manifests
         run: |
