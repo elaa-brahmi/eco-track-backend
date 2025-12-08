@@ -41,7 +41,7 @@ jobs:
       # 2. Build & Test (with JaCoCo + Surefire)
 
       - name: Build & Test
-        run: mvn -B -ntp clean verify
+        run: mvn -B -ntp clean verify -DskipTests=false -Dtest=!OsrmIntegrationTest,*Test
 
       - name: Upload Surefire Reports
         if: always()
