@@ -1,28 +1,24 @@
-name: "CI/CD — Build → Test → Scan → Deploy"
+name: CI/CD — Build → Test → Scan → Push → Deploy (Separated Jobs)
 
 on:
   push:
-    branches: [ main, develop, peterEvans-osrm ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+
 permissions:
   contents: read
-  packages: write          # Needed for GHCR
-  security-events: write   # Needed for Trivy SARIF upload
+  packages: write
+  security-events: write
 
+# ──────────────────────────────────────────────────────────────
+# 1. Build & Test (runs on every push/PR)
+# ──────────────────────────────────────────────────────────────
 jobs:
-  build-test-scan-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
-    environment: production    # Optional: protect with approval
-
-    env:
-      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ecotrack-backend
-      IMAGE_TAG: ${{ github.sha }}
-      KIND_CLUSTER_NAME: ecotrack
-
+    name: Build & Test
     steps:
-
-      # 1. Checkout + Setup
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -35,9 +31,8 @@ jobs:
           java-version: '17'
           cache: maven
 
-      # 2. Build & Test (with JaCoCo + Surefire)
       - name: Build & Test
-        run: mvn -B -ntp clean verify -DskipTests=false -Dtest=!OsrmIntegrationTest,*Test  # Skip OSRM tests since we're using hosted now
+        run: mvn -B -ntp clean verify -DskipTests=false -Dtest=!OsrmIntegrationTest,*Test
 
       - name: Upload Surefire Reports
         if: always()
@@ -53,134 +48,123 @@ jobs:
           name: jacoco-coverage
           path: target/site/jacoco/
 
-      # 3. Docker Image Build & Local Scan
-      - name: Build Docker image locally
-        run: docker build -t ecotrack-backend:${{ github.sha }} .
 
-      - name: Scan image locally with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ecotrack-backend:${{ github.sha }}
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
+  # ──────────────────────────────────────────────────────────────
+  # 2. Build & Push Docker Image (only if tests pass)
+  # ──────────────────────────────────────────────────────────────
+  build-and-push:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    name: Build & Push Image
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ecotrack-backend
 
-      - name: Upload Trivy scan results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # 4. Docker Image Build & Push to GHCR
-      - name: Log in to GitHub Container Registry
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix={{branch}}-,format=short
-            type=ref,event=branch
-            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Push Docker image to GHCR
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
-      # 5. Deploy to Local Kind Cluster (only on main) — NEW OSRM SOLUTION
-      - name: Setup Kind Cluster (only main branch)
-        if: github.ref == 'refs/heads/main'
+
+  # ──────────────────────────────────────────────────────────────
+  # 3. Security Scan (parallel, independent)
+  # ──────────────────────────────────────────────────────────────
+  security-scan:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    name: Trivy Security Scan
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build image for scanning
+        run: docker build -t ecotrack-backend:scan .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ecotrack-backend:scan
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+
+  # ──────────────────────────────────────────────────────────────
+  # 4. Deploy to Kind (only on main, after everything passes)
+  # ──────────────────────────────────────────────────────────────
+  deploy-to-kind:
+    needs: [build-and-push, security-scan]
+    runs-on: ubuntu-latest
+    name: Deploy to Kind (Test Cluster)
+    if: github.ref == 'refs/heads/main'
+    env:
+      KIND_CLUSTER_NAME: ecotrack
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Kind cluster
         run: |
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
           kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s || true
 
-      # NEW: Pull & Load pre-built OSRM image (auto-downloads Tunisia map + processes)
-      - name: Pull & Load OSRM Image into Kind
-        if: github.ref == 'refs/heads/main'
+      - name: Load images into Kind
         run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ecotrack-backend:latest
           docker pull peter-evans/osrm-backend-docker:latest
-          kind load docker-image ecotrack-backend:${{ github.sha }} --name ${{ env.KIND_CLUSTER_NAME }}
+          kind load docker-image ghcr.io/${{ github.repository_owner }}/ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
           kind load docker-image peter-evans/osrm-backend-docker:latest --name ${{ env.KIND_CLUSTER_NAME }}
 
-      - name: Deploy backend & OSRM manifests
-        if: github.ref == 'refs/heads/main'
+      - name: Deploy manifests
         run: |
           kubectl apply -f k8s/backend.yaml
-          # NEW: Deploy OSRM with env var for Tunisia PBF (auto-processes on startup)
-          cat <<EOF | kubectl apply -f -
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: osrm-tunisia
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: osrm-tunisia
-            template:
-              metadata:
-                labels:
-                  app: osrm-tunisia
-              spec:
-                containers:
-                - name: osrm
-                  image: peter-evans/osrm-backend-docker:latest
-                  env:
-                  - name: OSRM_PBF_URL
-                    value: "https://download.geofabrik.de/africa/tunisia-latest.osm.pbf"
-                  - name: OSRM_PROFILE
-                    value: "car"  # or "foot", "bicycle"
-                  ports:
-                  - containerPort: 5000
-                  resources:
-                    requests:
-                      memory: "2Gi"
-                      cpu: "1000m"
-                    limits:
-                      memory: "4Gi"
-                      cpu: "2000m"  # Processing is CPU-heavy
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: osrm-tunisia
-          spec:
-            selector:
-              app: osrm-tunisia
-            ports:
-            - port: 5000
-              targetPort: 5000
-          EOF
+          kubectl apply -f k8s/osrm.yaml   # ← your updated osrm.yaml with peter-evans image
 
-      # 6. Smoke Test (optional but elite) — UPDATED WITH OSRM CHECK
-      - name: Smoke Test API & OSRM
-        if: github.ref == 'refs/heads/main'
+      - name: Smoke Test (Backend + OSRM)
         run: |
-          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=3m || true
-          kubectl wait --for=condition=available deployment/osrm-tunisia --timeout=10m || true  # Wait for processing
+          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
+          kubectl wait --for=condition=available deployment/osrm --timeout=12m || true   # OSRM needs time on first run
           kubectl port-forward svc/ecotrack-backend 8080:8080 &
-          kubectl port-forward svc/osrm-tunisia 5001:5000 &
-          sleep 30  # Give time for OSRM startup
+          kubectl port-forward svc/osrm 5001:5000 &
+          sleep 40
           curl -f http://localhost:8080/actuator/health || exit 1
-          curl -f "http://localhost:5001/route/v1/driving/10.1667,36.8065;10.1911,36.8006?steps=true" || exit 1  # Test Tunisia route (Tunis to Sfax)
-          echo "API + OSRM healthy!"
+          curl -f "http://localhost:5001/route/v1/driving/10.1667,36.8065;10.1911,36.8006?steps=true" || exit 1
+          echo "DEPLOYED SUCCESSFULLY TO KIND CLUSTER"
 
-      # 7. Notify (optional — Slack, Discord, etc.)
-      - name: Notify Success
+      - name: Success Notification
         if: success()
-        run: echo "DEPLOYED SUCCESSFULLY TO KUBERNETES"
+        run: echo "Full CI/CD pipeline completed successfully!"
