@@ -154,7 +154,21 @@ jobs:
       - name: Deploy manifests
         run: |
           kubectl apply -f backend.yaml
-          kubectl apply -f osrm.yaml   
+          kubectl apply -f osrm.yaml  
+
+      - name: Debug — Show backend pod status & logs
+        if: always()
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -o wide
+          echo "=== Events ==="
+          kubectl get events --sort-by='.metadata.creationTimestamp'
+          echo "=== Backend pod description ==="
+          kubectl describe pod -l app=ecotrack
+          echo "=== Backend pod logs (last 50 lines) ==="
+          kubectl logs -l app=ecotrack --tail=50 || true
+          echo "=== OSRM pod logs (just in case) ==="
+          kubectl logs -l app=osrm --tail=20 || true
 
       - name: Smoke Test (Backend + OSRM)
         run: |
