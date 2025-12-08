@@ -1,12 +1,21 @@
+# Dockerfile.osrm — FINAL VERSION THAT WORKS TODAY (Dec 2025)
 FROM osrm/osrm-backend:latest
-RUN apk add --no-cache wget
+
+# Debian-based image → use apt-get
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /data
 
-# Download & process Tunisia map (cached by Docker)
-RUN wget -q https://download.geofabrik.de/africa/tunisia-latest.osm.pbf && \
-    osrm-extract -p /opt/car.lua tunisia-latest.osm.pbf && \
+# Download the latest Tunisia map from Geofabrik
+RUN wget -q https://download.geofabrik.de/africa/tunisia-latest.osm.pbf
+
+# Process it once at build time (cached forever after first build)
+RUN osrm-extract -p /opt/car.lua tunisia-latest.osm.pbf && \
     osrm-partition tunisia-latest.osrm && \
     osrm-customize tunisia-latest.osrm
 
 EXPOSE 5000
+
 CMD ["osrm-routed", "--algorithm", "mld", "tunisia-latest.osrm"]
