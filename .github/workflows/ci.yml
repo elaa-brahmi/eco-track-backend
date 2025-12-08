@@ -129,6 +129,7 @@ jobs:
         run: |
           docker build -t osrm-tunisia:v2 -f Dockerfile.osrm .
 
+
       - name: Load local Docker image into Kind
         if: github.ref == 'refs/heads/main'
         run: |
