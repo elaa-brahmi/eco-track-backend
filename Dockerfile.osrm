@@ -1,5 +1,5 @@
 FROM osrm/osrm-backend:latest
-
+RUN apk add --no-cache wget
 WORKDIR /data
 
 # Download & process Tunisia map (cached by Docker)
