@@ -206,21 +206,28 @@ jobs:
           mkdir -p ~/.railway
           echo "$RAILWAY_API_KEY" > ~/.railway/token
 
-      # Deploy Backend Service (Docker Hub Image)
+      - name: Link Project
+        run: |
+          export RAILWAY_TOKEN=$RAILWAY_API_KEY
+          railway project $RAILWAY_PROJECT_ID
+
+        # Deploy Backend Service (Docker Hub Image)
       - name: Deploy Backend Image to Railway
         run: |
-          railway service:update \
-            $RAILWAY_BACKEND_SERVICE_ID \
-            --project $RAILWAY_PROJECT_ID \
-            --image elaa21/ecotrack-backend:latest
+          export RAILWAY_TOKEN=$RAILWAY_API_KEY
+          railway up \
+            --service "$RAILWAY_BACKEND_SERVICE_ID" \
+            --docker-image "elaa21/ecotrack-backend:latest" \
+            --detach
 
       # Deploy OSRM Service (Docker Hub Image)
       - name: Deploy OSRM Image to Railway
         run: |
-          railway service:update \
-            $RAILWAY_OSRM_SERVICE_ID \
-            --project $RAILWAY_PROJECT_ID \
-            --image elaa21/osrm-tunisia:v2
+          export RAILWAY_TOKEN=$RAILWAY_API_KEY
+          railway up \
+            --service "$RAILWAY_OSRM_SERVICE_ID" \
+            --docker-image "elaa21/osrm-tunisia:v2" \
+            --detach
 
       - name: Verify Deployment
         run: echo "Railway deploy triggered successfully. Check dashboard for live URLs."
