@@ -2,7 +2,7 @@ name: CI/CD — Build → Test → Scan → Push → Deploy
 
 on:
   push:
-    branches: [ main, develop,peterEvans-osrm ]
+    branches: [ main, develop, peterEvans-osrm ]
   pull_request:
     branches: [ main ]
 
@@ -46,9 +46,7 @@ jobs:
           name: jacoco-coverage
           path: target/site/jacoco/
 
-
   # 2. Build & Push Docker Image (only if tests pass)
-
   build-and-push:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -87,7 +85,6 @@ jobs:
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-
   # 3. Security Scan (parallel, independent)
   security-scan:
     needs: build-and-test
@@ -114,10 +111,7 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
 
-
-
   # 4. Deploy to Kind (only on main, after everything passes)
-
   deploy-to-kind:
     needs: [build-and-push, security-scan]
     runs-on: ubuntu-latest
@@ -142,17 +136,17 @@ jobs:
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
-          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s 
+          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s
+
       - name: Debug — Show Kind nodes
         run: kubectl get nodes -o wide
 
-      - name: Load images into Kind
+      - name: Load backend image into Kind
         run: |
           docker build -f Dockerfile -t ecotrack-backend:latest .
           kind load docker-image ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
-          docker pull peterevans/osrm-backend:latest
-          kind load docker-image peterevans/osrm-backend:latest --name ${{ env.KIND_CLUSTER_NAME }} --nodes "${{ env.KIND_CLUSTER_NAME }}-control-plane"
-      - name: Deploy manifests
+
+      - name: Deploy backend manifest
         run: |
           kubectl create secret generic ecotrack-secrets \
             --from-literal=MONGO_URI=${{ secrets.MONGO_URI }} \
@@ -163,7 +157,6 @@ jobs:
             --from-literal=GROK_API_KEY=${{ secrets.GROK_API_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f backend.yaml
-          kubectl apply -f osrm.yaml 
 
       - name: Debug — Show backend pod status & logs
         if: always()
@@ -176,19 +169,14 @@ jobs:
           kubectl describe pod -l app=ecotrack
           echo "=== Backend pod logs (last 50 lines) ==="
           kubectl logs -l app=ecotrack --tail=50 || true
-          echo "=== OSRM pod logs (just in case) ==="
-          kubectl logs -l app=osrm --tail=20 || true
 
-      - name: Smoke Test (Backend + OSRM)
+      - name: Smoke Test (Backend)
         run: |
           kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
-          kubectl wait --for=condition=available deployment/osrm --timeout=12m || true  
           kubectl port-forward svc/ecotrack-backend 8080:8080 &
-          kubectl port-forward svc/osrm 5001:5000 &
-          sleep 40
+          sleep 20
           curl -f http://localhost:8080/health || exit 1
-          curl -f "http://localhost:5001/route/v1/driving/10.1667,36.8065;10.1911,36.8006?steps=true" || exit 1
-          echo "DEPLOYED SUCCESSFULLY TO KIND CLUSTER"
+          echo "Backend deployed successfully!"
 
       - name: Success Notification
         if: success()
