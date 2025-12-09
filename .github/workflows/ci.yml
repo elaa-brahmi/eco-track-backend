@@ -152,8 +152,7 @@ jobs:
           kind load docker-image peterevans/osrm-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
       - name: Deploy manifests
         run: |
-          kubectl apply -f backend.yaml
-          kubectl apply -f osrm.yaml  
+           
           kubectl create secret generic ecotrack-secrets \
             --from-literal=MONGO_URI=${{ secrets.MONGO_URI }} \
             --from-literal=SUPABASE_SECRET=${{ secrets.SUPABASE_SECRET }} \
@@ -162,6 +161,8 @@ jobs:
             --from-literal=ADMIN_ID=${{ secrets.ADMIN_ID }} \
             --from-literal=GROK_API_KEY=${{ secrets.GROK_API_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f backend.yaml
+          kubectl apply -f osrm.yaml 
 
       - name: Debug — Show backend pod status & logs
         if: always()
@@ -184,7 +185,7 @@ jobs:
           kubectl port-forward svc/ecotrack-backend 8080:8080 &
           kubectl port-forward svc/osrm 5001:5000 &
           sleep 40
-          curl -f http://localhost:8080/actuator/health || exit 1
+          curl -f http://localhost:8080/health || exit 1
           curl -f "http://localhost:5001/route/v1/driving/10.1667,36.8065;10.1911,36.8006?steps=true" || exit 1
           echo "DEPLOYED SUCCESSFULLY TO KIND CLUSTER"
 
