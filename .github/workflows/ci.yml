@@ -133,9 +133,9 @@ jobs:
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
 
       - name: Create Kind cluster
         run: |
@@ -152,7 +152,6 @@ jobs:
           kind load docker-image peterevans/osrm-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
       - name: Deploy manifests
         run: |
-           
           kubectl create secret generic ecotrack-secrets \
             --from-literal=MONGO_URI=${{ secrets.MONGO_URI }} \
             --from-literal=SUPABASE_SECRET=${{ secrets.SUPABASE_SECRET }} \
