@@ -183,36 +183,46 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy to Railway (Production)
     if: github.ref == 'refs/heads/main'
+
     env:
       RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_BACKEND_SERVICE_ID: ${{ secrets.RAILWAY_BACKEND_SERVICE_ID }}
+      RAILWAY_OSRM_SERVICE_ID: ${{ secrets.RAILWAY_OSRM_SERVICE_ID }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Install Railway CLI
       - name: Install Railway CLI
         run: |
           curl -fsSL https://railway.app/install.sh | sh
-          export PATH="$HOME/.railway/bin:$PATH"
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
 
+      # Authenticate Railway
       - name: Set Railway API Key
-        run: echo "$RAILWAY_API_KEY" > ~/.railway/token
-
-      - name: Link Project
         run: |
-          export RAILWAY_TOKEN=$RAILWAY_API_KEY
-          railway link $RAILWAY_PROJECT_ID
+          mkdir -p ~/.railway
+          echo "$RAILWAY_API_KEY" > ~/.railway/token
 
-      - name: Deploy Backend Image
+      # Deploy Backend Service (Docker Hub Image)
+      - name: Deploy Backend Image to Railway
         run: |
-          export RAILWAY_TOKEN=$RAILWAY_API_KEY
-          railway up --docker-image "elaa21/ecotrack-backend:latest" --detach
+          railway service:update \
+            $RAILWAY_BACKEND_SERVICE_ID \
+            --project $RAILWAY_PROJECT_ID \
+            --image elaa21/ecotrack-backend:latest
 
-      - name: Deploy OSRM Image
+      # Deploy OSRM Service (Docker Hub Image)
+      - name: Deploy OSRM Image to Railway
         run: |
-          export RAILWAY_TOKEN=$RAILWAY_API_KEY
-          railway up --docker-image "elaa21/osrm-tunisia:v2" --detach
+          railway service:update \
+            $RAILWAY_OSRM_SERVICE_ID \
+            --project $RAILWAY_PROJECT_ID \
+            --image elaa21/osrm-tunisia:v2
 
       - name: Verify Deployment
-        run: echo "Deployment triggered on Railway. Check the dashboard for your public URL."
+        run: echo "Railway deploy triggered successfully. Check dashboard for live URLs."
+
 
