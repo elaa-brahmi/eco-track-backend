@@ -3,6 +3,7 @@ package com.example.demo.service.routing;
 import com.example.demo.dto.RouteWithTaskDto;
 import com.example.demo.models.Route;
 import com.example.demo.models.Task;
+import com.example.demo.models.TaskStatus;
 import com.example.demo.repositories.RouteRepository;
 import com.example.demo.repositories.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,29 @@ public class RouteService {
 
     public List<Route> getAllRoutes() {
         return routeRepository.findAll();
+    }
+    public List<RouteWithTaskDto> getActiveRoutes() {
+        List<Route> routes = getAllRoutes();
+        return routes.stream()
+                .filter(route -> {
+                    Task task =taskRepo.findById(route.getTaskId()).orElse(null);
+                    return task!= null && task.getStatus() == TaskStatus.PENDING;
+                })
+                .map(route -> {
+                    RouteWithTaskDto dto = new RouteWithTaskDto();
+                    dto.setRouteId(route.getId());
+                    dto.setTaskId(route.getTaskId());
+                    dto.setVehicleId(route.getVehicleId());
+                    dto.setContainersIds(route.getContainersIds());
+                    dto.setContainerOrder(route.getRouteOrder());
+                    dto.setPolyline(route.getPolyline());
+                    dto.setTotalDistanceKm(route.getTotalDistanceKm());
+                    dto.setTotalDurationMin(route.getTotalDurationMin());
+                    dto.setCalculatedAt(route.getCalculatedAt());
+                    return dto;
+                })
+                .toList();
+
     }
 
 }

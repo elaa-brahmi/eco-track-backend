@@ -1,30 +1,22 @@
-name: "CI/CD — Build → Test → Scan → Deploy"
+name: CI/CD — Build → Test → Scan → Push → Deploy
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, peterEvans-osrm ]
   pull_request:
     branches: [ main ]
+
 permissions:
   contents: read
-  packages: write          # Needed for GHCR
-  security-events: write   # Needed for Trivy SARIF upload
+  packages: write
+  security-events: write
 
+# 1. Build & Test (runs on every push/PR)
 jobs:
-  build-test-scan-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
-    environment: production    # Optional: protect with approval
-
-    env:
-      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ecotrack-backend
-      IMAGE_TAG: ${{ github.sha }}
-      KIND_CLUSTER_NAME: ecotrack
-
+    name: Build & Test
     steps:
-
-      # 1. Checkout + Setup
-
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -36,9 +28,6 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-
-
-      # 2. Build & Test (with JaCoCo + Surefire)
 
       - name: Build & Test
         run: mvn -B -ntp clean verify -DskipTests=false -Dtest=!OsrmIntegrationTest,*Test
@@ -57,103 +46,138 @@ jobs:
           name: jacoco-coverage
           path: target/site/jacoco/
 
-      # 3. Docker Image Build & Local Scan
+  # 2. Build & Push Docker Image (only if tests pass)
+  build-and-push:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    name: Build & Push Image
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/peterEvans-osrm'
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ecotrack-backend
 
-      - name: Build Docker image locally
-        run: docker build -t ecotrack-backend:${{ github.sha }} .
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Scan image locally with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ecotrack-backend:${{ github.sha }}
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      - name: Upload Trivy scan results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-
-      # 4. Docker Image Build & Push to GHCR
-
-
-      - name: Log in to GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-            driver: docker-container
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix={{branch}}-,format=short
-            type=ref,event=branch
-            type=raw,value=latest,enable={{is_default_branch}}
 
-
-      - name: Push Docker image to GHCR
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
+  # 3. Security Scan (parallel, independent)
+  security-scan:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    name: Trivy Security Scan
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Build image for scanning
+        run: docker build -t ecotrack-backend:scan .
 
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ecotrack-backend:scan
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
 
-      # 5. Deploy to Local Kind Cluster (only on main)
+      - name: Upload Trivy results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
 
-      - name: Setup Kind Cluster (only main branch)
-        if: github.ref == 'refs/heads/main'
+  # 4. Deploy to Kind (only on main, after everything passes)
+  deploy-to-kind:
+    needs: [build-and-push, security-scan]
+    runs-on: ubuntu-latest
+    name: Deploy to Kind (Test Cluster)
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/peterEvans-osrm'
+    env:
+      KIND_CLUSTER_NAME: ecotrack
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
+
+      - name: Create Kind cluster
         run: |
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
-          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s || true
+          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s
 
-      - name: Build OSRM Docker image locally
-        if: github.ref == 'refs/heads/main'
+      - name: Debug — Show Kind nodes
+        run: kubectl get nodes -o wide
+
+      - name: Load backend image into Kind
         run: |
-          docker build -t osrm-tunisia:v2 -f Dockerfile.osrm .
+          docker build -f Dockerfile -t ecotrack-backend:latest .
+          kind load docker-image ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
 
-      - name: Load local Docker image into Kind
-        if: github.ref == 'refs/heads/main'
+      - name: Deploy backend manifest
         run: |
-          kind load docker-image ecotrack-backend:${{ github.sha }} --name ${{ env.KIND_CLUSTER_NAME }}
-          kind load docker-image osrm-tunisia:v2 --name ${{ env.KIND_CLUSTER_NAME }}
-      - name: Deploy backend & OSRM manifests
-        if: github.ref == 'refs/heads/main'
+          kubectl create secret generic ecotrack-secrets \
+            --from-literal=MONGO_URI=${{ secrets.MONGO_URI }} \
+            --from-literal=SUPABASE_SECRET=${{ secrets.SUPABASE_SECRET }} \
+            --from-literal=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --from-literal=ADMIN_SECRET=${{ secrets.ADMIN_SECRET }} \
+            --from-literal=ADMIN_ID=${{ secrets.ADMIN_ID }} \
+            --from-literal=GROK_API_KEY=${{ secrets.GROK_API_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f backend.yaml
+
+      - name: Debug — Show backend pod status & logs
+        if: always()
         run: |
-          kubectl apply -f k8s/backend.yaml
-          kubectl apply -f k8s/osrm.yaml
+          echo "=== Pods ==="
+          kubectl get pods -o wide
+          echo "=== Events ==="
+          kubectl get events --sort-by='.metadata.creationTimestamp'
+          echo "=== Backend pod description ==="
+          kubectl describe pod -l app=ecotrack
+          echo "=== Backend pod logs (last 50 lines) ==="
+          kubectl logs -l app=ecotrack --tail=50 || true
 
-
-
-      # 6. Smoke Test (optional but elite)
-
-      - name: Smoke Test API
-        if: github.ref == 'refs/heads/main'
+      - name: Smoke Test (Backend)
         run: |
-          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=3m
+          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
           kubectl port-forward svc/ecotrack-backend 8080:8080 &
-          sleep 10
-          curl -f http://localhost:8080/actuator/health || exit 1
-          echo "API is healthy!"
+          sleep 20
+          curl -f http://localhost:8080/health || exit 1
+          echo "Backend deployed successfully!"
 
-
-      # 7. Notify (optional — Slack, Discord, etc.)
-
-      - name: Notify Success
+      - name: Success Notification
         if: success()
-        run: echo "DEPLOYED SUCCESSFULLY TO KUBERNETES"
+        run: echo "Full CI/CD pipeline completed successfully!"

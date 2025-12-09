@@ -27,6 +27,10 @@ public class RouteController {
         return ResponseEntity.status(200).body(routeService.getAllRoutes());
 
     }
+    @GetMapping("/activeRoutes")
+    public ResponseEntity<List<RouteWithTaskDto>> getActiveRoutes() {
+        return ResponseEntity.status(200).body(routeService.getActiveRoutes());
+    }
     @GetMapping("{employeeId}")
     public ResponseEntity<List<RouteWithTaskDto>> getRoute(@PathVariable String employeeId) {
         return ResponseEntity.status(200).body(routeService.getRoutesByEmployeeId(employeeId));
