@@ -184,8 +184,8 @@ jobs:
     name: Deploy to Railway (Production)
     if: github.ref == 'refs/heads/main'
     env:
-      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -195,22 +195,24 @@ jobs:
           curl -fsSL https://railway.app/install.sh | sh
           export PATH="$HOME/.railway/bin:$PATH"
 
-      - name: Login to Railway
-        run: |
-          railway login --apiKey $RAILWAY_API_KEY
+      - name: Set Railway API Key
+        run: echo "$RAILWAY_API_KEY" > ~/.railway/token
 
       - name: Link Project
         run: |
+          export RAILWAY_TOKEN=$RAILWAY_API_KEY
           railway link $RAILWAY_PROJECT_ID
 
       - name: Deploy Backend Image
         run: |
+          export RAILWAY_TOKEN=$RAILWAY_API_KEY
           railway up --docker-image "elaa21/ecotrack-backend:latest" --detach
 
       - name: Deploy OSRM Image
         run: |
+          export RAILWAY_TOKEN=$RAILWAY_API_KEY
           railway up --docker-image "elaa21/osrm-tunisia:v2" --detach
 
       - name: Verify Deployment
-        run: |
-          echo "Rails app deployed! You can check the Railway dashboard for public URL."
+        run: echo "Deployment triggered on Railway. Check the dashboard for your public URL."
+
