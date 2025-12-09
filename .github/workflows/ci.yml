@@ -178,6 +178,39 @@ jobs:
           curl -f http://localhost:8080/health || exit 1
           echo "Backend deployed successfully!"
 
-      - name: Success Notification
-        if: success()
-        run: echo "Full CI/CD pipeline completed successfully!"
+  deploy-to-railway:
+    needs: deploy-to-kind
+    runs-on: ubuntu-latest
+    name: Deploy to Railway (Production)
+    if: github.ref == 'refs/heads/main'
+    env:
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          export PATH="$HOME/.railway/bin:$PATH"
+
+      - name: Login to Railway
+        run: |
+          railway login --apiKey $RAILWAY_API_KEY
+
+      - name: Link Project
+        run: |
+          railway link $RAILWAY_PROJECT_ID
+
+      - name: Deploy Backend Image
+        run: |
+          railway up --docker-image "elaa21/ecotrack-backend:latest" --detach
+
+      - name: Deploy OSRM Image
+        run: |
+          railway up --docker-image "elaa21/osrm-tunisia:v2" --detach
+
+      - name: Verify Deployment
+        run: |
+          echo "Rails app deployed! You can check the Railway dashboard for public URL."
