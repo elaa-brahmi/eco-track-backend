@@ -10,10 +10,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import java.time.Instant;
@@ -149,5 +152,31 @@ class RouteControllerTest {
         mockMvc.perform(get("/api/route/unknown"))
                 .andExpect(status().isOk())
                 .andExpect(content().json("[]"));
+    }
+    @Test
+    void testGetActiveRoutes() throws Exception {
+        RouteWithTaskDto dto = new RouteWithTaskDto();
+        dto.setRouteId("r1");
+        dto.setTaskId("t1");
+        dto.setVehicleId("v1");
+        dto.setContainersIds(List.of("c1", "c2"));
+        dto.setContainerOrder(List.of("c1", "c2"));
+        dto.setPolyline("polyline1");
+        dto.setTotalDistanceKm(10.0);
+        dto.setTotalDurationMin(15.0);
+        dto.setCalculatedAt(Instant.now());
+
+        when(routeService.getActiveRoutes()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/route/activeRoutes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_admin-role")
+                        )))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].routeId").value("r1"))
+                .andExpect(jsonPath("$[0].taskId").value("t1"))
+                .andExpect(jsonPath("$[0].vehicleId").value("v1"))
+                .andExpect(jsonPath("$[0].containersIds[0]").value("c1"));
     }
 }

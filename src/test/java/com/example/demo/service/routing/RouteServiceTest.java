@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -145,5 +146,53 @@ class RouteServiceTest {
         // THEN
         assertThat(result).hasSize(1);
     }
+
+    @Test
+    void testGetActiveRoutes() {
+        Route route1 = new Route();
+        route1.setId("r1");
+        route1.setTaskId("t1");
+        route1.setVehicleId("v1");
+        route1.setContainersIds(List.of("c1", "c2"));
+        route1.setRouteOrder(List.of("c1", "c2"));
+        route1.setPolyline("polyline1");
+        route1.setTotalDistanceKm(10.0);
+        route1.setTotalDurationMin(15.0);
+        route1.setCalculatedAt(Instant.now());
+
+        Route route2 = new Route();
+        route2.setId("r2");
+        route2.setTaskId("t2");
+        route2.setVehicleId("v2");
+        route2.setContainersIds(List.of("c3"));
+        route2.setRouteOrder(List.of("c3"));
+        route2.setPolyline("polyline2");
+        route2.setTotalDistanceKm(5.0);
+        route2.setTotalDurationMin(8.0);
+        route2.setCalculatedAt(Instant.now());
+
+        Task task1 = new Task();
+        task1.setId("t1");
+        task1.setStatus(TaskStatus.PENDING);
+
+        Task task2 = new Task();
+        task2.setId("t2");
+        task2.setStatus(TaskStatus.COMPLETED);
+
+        when(taskRepo.findById("t1")).thenReturn(Optional.of(task1));
+        when(taskRepo.findById("t2")).thenReturn(Optional.of(task2));
+        RouteService spyService = spy(routeService);
+        doReturn(List.of(route1, route2)).when(spyService).getAllRoutes();
+
+        List<RouteWithTaskDto> result = spyService.getActiveRoutes();
+
+        assertEquals(1, result.size());
+        RouteWithTaskDto dto = result.get(0);
+        assertEquals("r1", dto.getRouteId());
+        assertEquals("t1", dto.getTaskId());
+        assertEquals("v1", dto.getVehicleId());
+        assertEquals(List.of("c1", "c2"), dto.getContainersIds());
+    }
+
 
 }
