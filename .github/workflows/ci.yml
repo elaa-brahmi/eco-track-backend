@@ -154,6 +154,14 @@ jobs:
         run: |
           kubectl apply -f backend.yaml
           kubectl apply -f osrm.yaml  
+          kubectl create secret generic ecotrack-secrets \
+            --from-literal=MONGO_URI=${{ secrets.MONGO_URI }} \
+            --from-literal=SUPABASE_SECRET=${{ secrets.SUPABASE_SECRET }} \
+            --from-literal=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --from-literal=ADMIN_SECRET=${{ secrets.ADMIN_SECRET }} \
+            --from-literal=ADMIN_ID=${{ secrets.ADMIN_ID }} \
+            --from-literal=GROK_API_KEY=${{ secrets.GROK_API_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Debug — Show backend pod status & logs
         if: always()
