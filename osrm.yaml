@@ -14,28 +14,16 @@ spec:
     spec:
       containers:
         - name: osrm
-          image: peterevans/osrm-backend:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: OSRM_PBF_URL
-              value: "https://download.geofabrik.de/africa/tunisia-latest.osm.pbf"
-            - name: OSRM_PROFILE
-              value: "car"
+          image: osrm-tunisia:v2
+          imagePullPolicy: Never
           ports:
             - containerPort: 5000
-          resources:
-            requests:
-              memory: "2Gi"
-              cpu: "1000m"
-            limits:
-              memory: "4Gi"
-              cpu: "2000m"
           readinessProbe:
             httpGet:
               path: /route/v1/driving/10.76,34.74;10.77,34.73
               port: 5000
-            initialDelaySeconds: 60
-            periodSeconds: 30
+            initialDelaySeconds: 10
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
