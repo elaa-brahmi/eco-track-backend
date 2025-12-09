@@ -142,14 +142,16 @@ jobs:
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
-          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s || true
+          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s 
+      - name: Debug — Show Kind nodes
+        run: kubectl get nodes -o wide
 
       - name: Load images into Kind
         run: |
           docker build -f Dockerfile -t ecotrack-backend:latest .
           kind load docker-image ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
           docker pull peterevans/osrm-backend:latest
-          kind load docker-image peterevans/osrm-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
+          kind load docker-image peterevans/osrm-backend:latest --name ${{ env.KIND_CLUSTER_NAME }} --nodes "${{ env.KIND_CLUSTER_NAME }}-control-plane"
       - name: Deploy manifests
         run: |
           kubectl create secret generic ecotrack-secrets \
