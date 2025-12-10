@@ -207,8 +207,9 @@ jobs:
           echo "$RAILWAY_API_KEY" > ~/.railway/token
 
       - name: Link Project
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_API_KEY }}
         run: |
-          export RAILWAY_TOKEN=$RAILWAY_API_KEY
           railway link -p "$RAILWAY_PROJECT_ID"
 
 
