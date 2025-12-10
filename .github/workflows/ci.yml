@@ -209,7 +209,8 @@ jobs:
       - name: Link Project
         run: |
           export RAILWAY_TOKEN=$RAILWAY_API_KEY
-          railway project $RAILWAY_PROJECT_ID
+          railway link -p "$RAILWAY_PROJECT_ID"
+
 
         # Deploy Backend Service (Docker Hub Image)
       - name: Deploy Backend Image to Railway
