@@ -200,15 +200,12 @@ jobs:
           curl -fsSL https://railway.app/install.sh | sh
           echo "$HOME/.railway/bin" >> $GITHUB_PATH
 
-      # Authenticate Railway
-      - name: Set Railway API Key
-        run: |
-          mkdir -p ~/.railway
-          echo "$RAILWAY_API_KEY" > ~/.railway/token
+      # Login
+      - name: Login to Railway CLI
+        run: railway login --apiKey ${{ secrets.RAILWAY_API_KEY }}
+
 
       - name: Link Project
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_API_KEY }}
         run: |
           railway link -p "$RAILWAY_PROJECT_ID"
 
