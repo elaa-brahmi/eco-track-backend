@@ -11,7 +11,7 @@ permissions:
   packages: write
   security-events: write
 
-# 1. Build & Test (runs on every push/PR)
+# 1. Build & Test
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -46,7 +46,7 @@ jobs:
           name: jacoco-coverage
           path: target/site/jacoco/
 
-  # 2. Build & Push Docker Image (only if tests pass)
+  # 2. Build & Push Docker Image
   build-and-push:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -111,7 +111,7 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
 
-  # 4. Deploy to Kind (only on main, after everything passes)
+  # 4. Deploy to Kind
   deploy-to-kind:
     needs: [build-and-push, security-scan]
     runs-on: ubuntu-latest
@@ -194,38 +194,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Install Railway CLI
-      - name: Install Railway CLI
-        run: |
-          curl -fsSL https://railway.app/install.sh | sh
-          echo "$HOME/.railway/bin" >> $GITHUB_PATH
 
-      # Login
-      - name: Login to Railway CLI
-        run: railway login --apiKey ${{ secrets.RAILWAY_API_KEY }}
-
-
-      - name: Link Project
-        run: |
-          railway link -p "$RAILWAY_PROJECT_ID"
-
-
-        # Deploy Backend Service (Docker Hub Image)
-      - name: Deploy Backend Image to Railway
-        run: |
-          export RAILWAY_TOKEN=$RAILWAY_API_KEY
-          railway up \
-            --service "$RAILWAY_BACKEND_SERVICE_ID" \
-            --docker-image "elaa21/ecotrack-backend:latest" \
-            --detach
 
       # Deploy OSRM Service (Docker Hub Image)
       - name: Deploy OSRM Image to Railway
         run: |
-          export RAILWAY_TOKEN=$RAILWAY_API_KEY
           railway up \
             --service "$RAILWAY_OSRM_SERVICE_ID" \
             --docker-image "elaa21/osrm-tunisia:v2" \
+            --detach
+      # Get OSRM public URL (Railway API provides this)
+      - name: Set OSRM URL
+        id: osrm
+        run: |
+          OSRM_URL=$(railway service info ${{ secrets.RAILWAY_OSRM_SERVICE_ID }} --json | jq -r '.url')
+          echo "OSRM_URL=$OSRM_URL" >> $GITHUB_ENV
+      
+
+        # Deploy Backend Service (Docker Hub Image)
+      - name: Deploy Backend Image to Railway
+        run: |
+          railway up \
+            --service "$RAILWAY_BACKEND_SERVICE_ID" \
+            --docker-image "elaa21/ecotrack-backend:latest" \
             --detach
 
       - name: Verify Deployment
