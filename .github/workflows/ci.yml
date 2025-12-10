@@ -113,72 +113,72 @@ jobs:
       - name: Verify Deployment
         run: echo "Railway deploy triggered successfully. Check dashboard for live URLs."
 
-#  # 4. Deploy to Kind
-#  deploy-to-kind:
-#    needs: [build-and-push, security-scan]
-#    runs-on: ubuntu-latest
-#    name: Deploy to Kind (Test Cluster)
-#    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/peterEvans-osrm'
-#    env:
-#      KIND_CLUSTER_NAME: ecotrack
-#
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#
-#      - name: Login to GHCR
-#        uses: docker/login-action@v3
-#        with:
-#          registry: ghcr.io
-#          username: ${{ github.actor }}
-#          password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
-#
-#      - name: Create Kind cluster
-#        run: |
-#          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
-#          chmod +x ./kind
-#          sudo mv ./kind /usr/local/bin/kind
-#          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s
-#
-#      - name: Debug — Show Kind nodes
-#        run: kubectl get nodes -o wide
-#
-#      - name: Load backend image into Kind
-#        run: |
-#          docker build -f Dockerfile -t ecotrack-backend:latest .
-#          kind load docker-image ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
-#
-#      - name: Deploy backend manifest
-#        run: |
-#          kubectl create secret generic ecotrack-secrets \
-#            --from-literal=MONGO_URI=${{ secrets.MONGO_URI }} \
-#            --from-literal=SUPABASE_SECRET=${{ secrets.SUPABASE_SECRET }} \
-#            --from-literal=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-#            --from-literal=ADMIN_SECRET=${{ secrets.ADMIN_SECRET }} \
-#            --from-literal=ADMIN_ID=${{ secrets.ADMIN_ID }} \
-#            --from-literal=GROK_API_KEY=${{ secrets.GROK_API_KEY }} \
-#            --dry-run=client -o yaml | kubectl apply -f -
-#          kubectl apply -f backend.yaml
-#
-#      - name: Debug — Show backend pod status & logs
-#        if: always()
-#        run: |
-#          echo "=== Pods ==="
-#          kubectl get pods -o wide
-#          echo "=== Events ==="
-#          kubectl get events --sort-by='.metadata.creationTimestamp'
-#          echo "=== Backend pod description ==="
-#          kubectl describe pod -l app=ecotrack
-#          echo "=== Backend pod logs (last 50 lines) ==="
-#          kubectl logs -l app=ecotrack --tail=50 || true
-#
-#      - name: Smoke Test (Backend)
-#        run: |
-#          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
-#          kubectl port-forward svc/ecotrack-backend 8080:8080 &
-#          sleep 20
-#          curl -f http://localhost:8080/health || exit 1
-#          echo "Backend deployed successfully!"
+  # 4. Deploy to Kind
+  deploy-to-kind:
+    needs: [build-and-push, security-scan]
+    runs-on: ubuntu-latest
+    name: Deploy to Kind (Test Cluster)
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/peterEvans-osrm'
+    env:
+      KIND_CLUSTER_NAME: ecotrack
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
+
+      - name: Create Kind cluster
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s
+
+      - name: Debug — Show Kind nodes
+        run: kubectl get nodes -o wide
+
+      - name: Load backend image into Kind
+        run: |
+          docker build -f Dockerfile -t ecotrack-backend:latest .
+          kind load docker-image ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
+
+      - name: Deploy backend manifest
+        run: |
+          kubectl create secret generic ecotrack-secrets \
+            --from-literal=MONGO_URI=${{ secrets.MONGO_URI }} \
+            --from-literal=SUPABASE_SECRET=${{ secrets.SUPABASE_SECRET }} \
+            --from-literal=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --from-literal=ADMIN_SECRET=${{ secrets.ADMIN_SECRET }} \
+            --from-literal=ADMIN_ID=${{ secrets.ADMIN_ID }} \
+            --from-literal=GROK_API_KEY=${{ secrets.GROK_API_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f backend.yaml
+
+      - name: Debug — Show backend pod status & logs
+        if: always()
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -o wide
+          echo "=== Events ==="
+          kubectl get events --sort-by='.metadata.creationTimestamp'
+          echo "=== Backend pod description ==="
+          kubectl describe pod -l app=ecotrack
+          echo "=== Backend pod logs (last 50 lines) ==="
+          kubectl logs -l app=ecotrack --tail=50 || true
+
+      - name: Smoke Test (Backend)
+        run: |
+          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
+          kubectl port-forward svc/ecotrack-backend 8080:8080 &
+          sleep 20
+          curl -f http://localhost:8080/health || exit 1
+          echo "Backend deployed successfully!"
 #
 #  deploy-to-railway:
 #    needs: deploy-to-kind
