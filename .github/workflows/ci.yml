@@ -171,6 +171,7 @@ jobs:
           kubectl describe pod -l app=ecotrack
           echo "=== Backend pod logs (last 50 lines) ==="
           kubectl logs -l app=ecotrack --tail=50 || true
+          
 
       - name: Smoke Test (Backend)
         run: |
