@@ -2,7 +2,7 @@ name: CI/CD — Build → Test → Scan → Push → Deploy
 
 on:
   push:
-    branches: [ main, develop, peterEvans-osrm ]
+    branches: [ main, develop, peterEvans-osrm, deploying-keycloak ]
   pull_request:
     branches: [ main ]
 
@@ -51,7 +51,7 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     name: Build & Push Image
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/peterEvans-osrm'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/deploying-keycloak'
     env:
       IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ecotrack-backend
 
@@ -118,7 +118,7 @@ jobs:
     needs: [build-and-push, security-scan]
     runs-on: ubuntu-latest
     name: Deploy to Kind (Test Cluster)
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/peterEvans-osrm'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploying-keycloak'
     env:
       KIND_CLUSTER_NAME: ecotrack
 
@@ -147,6 +147,10 @@ jobs:
         run: |
           docker build -f Dockerfile -t ecotrack-backend:latest .
           kind load docker-image ecotrack-backend:latest --name ${{ env.KIND_CLUSTER_NAME }}
+      - name: Load Keycloak image into Kind
+        run: |
+          docker build -f Dockerfile.keycloak -t elaa21/keycloak-ecotrack:latest .
+          kind load docker-image elaa21/keycloak-ecotrack:latest --name ${{ env.KIND_CLUSTER_NAME }}
 
       - name: Deploy backend manifest
         run: |
@@ -157,8 +161,19 @@ jobs:
             --from-literal=ADMIN_SECRET=${{ secrets.ADMIN_SECRET }} \
             --from-literal=ADMIN_ID=${{ secrets.ADMIN_ID }} \
             --from-literal=GROK_API_KEY=${{ secrets.GROK_API_KEY }} \
+            --from-literal=KC_DB_USERNAME=${{ secrets.KC_DB_USERNAME }} \
+            --from-literal=KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }} \
+            --from-literal=KC_BOOTSTRAP_ADMIN_USERNAME=${{ secrets.KC_BOOTSTRAP_ADMIN_USERNAME }} \
+            --from-literal=KC_BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.KC_BOOTSTRAP_ADMIN_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
           kubectl apply -f backend.yaml
+
+      - name: Deploy Keycloak manifest
+        run: |
+          kubectl apply -f keycloak-db.yaml
+          kubectl apply -f keycloak.yaml
+          kubectl rollout status deployment/keycloak-db --timeout=2m
+          kubectl rollout status deployment/keycloak --timeout=2m
 
       - name: Debug — Show backend pod status & logs
         if: always()
@@ -171,6 +186,8 @@ jobs:
           kubectl describe pod -l app=ecotrack
           echo "=== Backend pod logs (last 50 lines) ==="
           kubectl logs -l app=ecotrack --tail=50 || true
+          echo "=== Keycloak pod logs ==="
+          kubectl logs -l app=keycloak --tail=50 || true
 
       - name: Smoke Test (Backend)
         run: |
