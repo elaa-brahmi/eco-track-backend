@@ -143,6 +143,7 @@ jobs:
       - name: Debug — Show Kind nodes
         run: kubectl get nodes -o wide
 
+
       - name: Load backend image into Kind
         run: |
           docker build -f Dockerfile -t ecotrack-backend:latest .
