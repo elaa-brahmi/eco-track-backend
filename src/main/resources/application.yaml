@@ -1,3 +1,4 @@
+#application.yaml
 spring:
   application:
     name: demo
