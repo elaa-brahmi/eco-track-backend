@@ -133,12 +133,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ACCESS_TOKEN_GITHUB }}
 
+      - name: Set up Kind
+        uses: engineerd/setup-kind@v0.9.0
+        with:
+          version: v0.24.0
+
       - name: Create Kind cluster
-        run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
-          kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s
+        run: kind create cluster --name ${{ env.KIND_CLUSTER_NAME }} --wait 120s
 
       - name: Debug — Show Kind nodes
         run: kubectl get nodes -o wide
