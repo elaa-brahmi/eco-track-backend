@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak
-  labels:
-    app: keycloak
 spec:
   replicas: 1
   selector:
@@ -17,43 +15,37 @@ spec:
       containers:
         - name: keycloak
           image: elaa21/keycloak-ecotrack:latest
-          ports:
-            - containerPort: 8080
+          args: ["start", "--http-enabled=true", "--hostname-strict=false"]
           env:
             - name: KC_DB
               value: postgres
-            - name: KC_DB_URL
-              value: jdbc:postgresql://keycloak-db:5432/keycloak
+            - name: KC_DB_URL_HOST
+              value: keycloak-db
+            - name: KC_DB_URL_PORT
+              value: "5432"
             - name: KC_DB_USERNAME
-              value: keycloak
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: KC_DB_USERNAME
             - name: KC_DB_PASSWORD
-              value: keycloak
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: KC_DB_PASSWORD
             - name: KC_BOOTSTRAP_ADMIN_USERNAME
-              value: admin
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: KC_BOOTSTRAP_ADMIN_USERNAME
             - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-              value: admin                    # change in real prod!
-            - name: KEYCLOAK_ADMIN
-              value: admin
-            - name: KEYCLOAK_ADMIN_PASSWORD
-              value: admin
-            - name: KC_HOSTNAME_STRICT
-              value: "false"
-            - name: KC_HTTP_ENABLED
-              value: "true"
-          command: ["/opt/keycloak/bin/kc.sh"]
-          args: ["start", "--optimized"]
-          readinessProbe:
-            httpGet:
-              path: /realms/master
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /health/live
-              port: 8080
-            initialDelaySeconds: 90
-            periodSeconds: 20
+              valueFrom:
+                secretKeyRef:
+                  name: ecotrack-secrets
+                  key: KC_BOOTSTRAP_ADMIN_PASSWORD
+          ports:
+            - containerPort: 8080
+      restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
@@ -65,4 +57,6 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
-  type: ClusterIP   # only internal, exactly like Railway
+      nodePort: 32080
+      protocol: TCP
+  type: NodePort
