@@ -10,13 +10,13 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:14082/realms/springboot-test
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
 supabase:
   url: ${SUPABASE_URL}
   key: ${SUPABASE_SECRET}
   bucket: ecoTrackImages
 keycloak:
-  auth-server-url: http://localhost:14082/
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}
   realm: springboot-test
   resource: ${ADMIN_ID}
   credentials:
@@ -33,14 +33,14 @@ grok:
   api:
     key: ${GROK_API_KEY}
 osrm:
-  url: http://localhost:5000
+  url: ${OSRM_URL}
 
 logging:
   level:
     org.springframework.web: DEBUG
     org.springframework.security: DEBUG
 server:
-  port: 8080
+  port: ${PORT:8080}
   error:
     include-message: always
     include-binding-errors: always
@@ -48,4 +48,15 @@ server:
     include-exception: false
 app:
   cors:
-    allowed-origins: http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://localhost:5173
+    allowed-origins: ${FRONTEND_URL}
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+  endpoints:
+    web:
+      exposure:
+        include: health
+  health:
+    defaults:
+      enabled: true

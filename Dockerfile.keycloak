@@ -3,4 +3,4 @@ FROM quay.io/keycloak/keycloak:26.1.0
 # Add any custom configs/scripts if needed (e.g., realm import)
 # COPY your-realm-export.json /opt/keycloak/data/import/
 
-CMD ["start", "--optimized", "--http-enabled=true", "--hostname-strict=false"]
+CMD ["start", "--http-enabled=true", "--hostname-strict=false"]
