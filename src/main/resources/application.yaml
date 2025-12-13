@@ -42,7 +42,7 @@ logging:
     org.springframework.security.oauth2: DEBUG
     org.springframework.security.oauth2.jwt: DEBUG
 server:
-  port: ${PORT:8080}
+  port: 8080
   error:
     include-message: always
     include-binding-errors: always
