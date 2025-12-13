@@ -29,7 +29,7 @@ public class SensorSimulator {
 
 
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 60 * 60 * 1000)
     public void simulate() {
         System.out.println("Simulating");
         List<Container> containers = repo.findAll();
