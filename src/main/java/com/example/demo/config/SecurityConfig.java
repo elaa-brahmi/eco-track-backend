@@ -44,16 +44,13 @@ public class SecurityConfig {
                         .requestMatchers("/topic/**").permitAll()
                         .requestMatchers("/raw-test").permitAll()
 
-                        // admin /employees (employees/vehicles/containers)
-                        .requestMatchers("/api/employees/**").hasAnyRole("admin-role","employee-role")
-                        .requestMatchers("/api/vehicules/**").hasAnyRole("admin-role","employee-role")
-                        .requestMatchers("/api/containers/**").hasAnyRole("admin-role","employee-role")
+                        // Fixed: use hasAnyAuthority with exact prefixed roles
+                        .requestMatchers("/api/employees/**").hasAnyAuthority("ROLE_admin-role", "ROLE_employee-role")
+                        .requestMatchers("/api/vehicules/**").hasAnyAuthority("ROLE_admin-role", "ROLE_employee-role")
+                        .requestMatchers("/api/containers/**").hasAnyAuthority("ROLE_admin-role", "ROLE_employee-role")
 
-                        // tasks
-                        .requestMatchers("/api/tasks/**").hasAnyRole("admin-role","employee-role")
-
-                        // reports
-                        .requestMatchers("/api/reports/**").hasAnyRole("admin-role")
+                        .requestMatchers("/api/tasks/**").hasAnyAuthority("ROLE_admin-role", "ROLE_employee-role")
+                        .requestMatchers("/api/reports/**").hasAnyAuthority("ROLE_admin-role")
 
 
                         // everything else  → requires login
