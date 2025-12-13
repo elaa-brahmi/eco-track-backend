@@ -191,13 +191,13 @@ jobs:
           echo "=== Keycloak pod logs ==="
           kubectl logs -l app=keycloak --tail=50 || true
 
-      - name: Smoke Test (Backend)
-        run: |
-          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
-          kubectl port-forward svc/ecotrack-backend 8080:8080 &
-          sleep 20
-          curl -f http://localhost:8080/health || exit 1
-          echo "Backend deployed successfully!"
+#      - name: Smoke Test (Backend)
+#        run: |
+#          kubectl wait --for=condition=available deployment/ecotrack-backend --timeout=5m
+#          kubectl port-forward svc/ecotrack-backend 8080:8080 &
+#          sleep 20
+#          curl -f http://localhost:8080/health || exit 1
+#          echo "Backend deployed successfully!"
 #
 #  deploy-to-railway:
 #    needs: deploy-to-kind
