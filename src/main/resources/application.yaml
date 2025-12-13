@@ -37,8 +37,10 @@ osrm:
 
 logging:
   level:
-    org.springframework.web: DEBUG
     org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security.oauth2: DEBUG
+    org.springframework.security.oauth2.jwt: DEBUG
 server:
   port: ${PORT:8080}
   error:
