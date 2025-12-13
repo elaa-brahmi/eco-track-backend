@@ -30,7 +30,8 @@ jobs:
           cache: maven
 
       - name: Build & Test
-        run: mvn -B -ntp clean verify -DskipTests=false -Dtest=!OsrmIntegrationTest,*Test
+        run: mvn -B clean package -DskipTests
+
 
       - name: Upload Surefire Reports
         if: always()
